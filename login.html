@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar sesión · Trámites CRAFT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" id="login-form" autocomplete="off">
+      <span class="eyebrow">CRAFT · Gestión de trámites</span>
+      <h1>Trámites CRAFT</h1>
+      <p class="sub">Ingresa tu contraseña de acceso: la de edición si vas a capturar o actualizar información, o la de solo lectura si solo necesitas consultarla.</p>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" required autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+  </div>
+  <script>
+    document.getElementById("login-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var errorEl = document.getElementById("login-error");
+      errorEl.textContent = "";
+      var password = document.getElementById("password").value;
+      fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password })
+      }).then(function (r) {
+        if (r.ok) { window.location.href = "/"; return; }
+        return r.json().then(function (d) { errorEl.textContent = d.error || "Contraseña incorrecta."; });
+      }).catch(function () {
+        errorEl.textContent = "No se pudo conectar con el servidor. Intenta de nuevo.";
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1932 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trámites CRAFT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header">
+    <div class="header-title">
+      <span class="eyebrow">CRAFT · Gestión de trámites</span>
+      <h1>Trámites CRAFT</h1>
+      <div class="header-sub">Seguimiento de vencimientos y costos aproximados por ciudad y proyecto.</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn requires-edit" id="btn-import">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Importar
+      </button>
+      <button class="btn" id="btn-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Exportar
+      </button>
+      <button class="btn" id="btn-pagos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+        Pagos
+      </button>
+      <button class="btn" id="btn-hitos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Hitos
+      </button>
+      <button class="btn btn-primary requires-edit" id="btn-add" title="Registra un proyecto primero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nuevo trámite
+      </button>
+      <button class="btn btn-ghost" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="readonly-banner" id="readonly-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M12 15v2"/><path d="M12 7v5"/><circle cx="12" cy="12" r="10"/></svg>
+    <span>Estás en modo de solo lectura: puedes ver todo, pero no hacer cambios.</span>
+  </div>
+
+  <div class="net-banner" id="net-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="net-banner-text">No se pudo conectar con el servidor.</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat-tile">
+      <span class="stat-label">Trámites (filtro actual)</span>
+      <span class="stat-value c-accent" id="stat-total">0</span>
+      <span class="stat-foot" id="stat-total-foot">de 0 en total</span>
+    </div>
+    <div class="stat-tile">
+      <span class="stat-label">Costo total (proyección)</span>
+      <span class="stat-value c-accent" id="stat-cost">$0</span>
+      <span class="stat-foot">gestión + derechos · trámites visibles</span>
+    </div>
+    <div class="stat-tile">
+      <span class="stat-label">Pagos realizados</span>
+      <span class="stat-value c-accent" id="stat-pagos">$0</span>
+      <span class="stat-foot">registrados en trámites visibles</span>
+    </div>
+    <div class="stat-tile">
+      <span class="stat-label">Por vencer ≤ 30 días</span>
+      <span class="stat-value c-warning" id="stat-soon">0</span>
+      <span class="stat-foot">incluye urgentes (≤15 días)</span>
+    </div>
+    <div class="stat-tile">
+      <span class="stat-label">Vencidos</span>
+      <span class="stat-value c-critical" id="stat-overdue">0</span>
+      <span class="stat-foot">requieren atención inmediata</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Proyectos</h2>
+        <div class="hint" id="proyectos-hint">0 proyectos</div>
+      </div>
+      <button class="btn btn-primary requires-edit" id="btn-add-proyecto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        Nuevo proyecto
+      </button>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Ciudad</th>
+            <th>Trámites</th>
+            <th>Costo total</th>
+            <th>Próximo vencimiento</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="proyectos-table-body"><tr><td colspan="6" class="loading-row">Cargando proyectos…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="proyectos-empty-state" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+      <div>Aún no registras proyectos.</div>
+      <button class="btn btn-primary requires-edit" id="btn-add-proyecto-empty">Registrar el primero</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Control de pagos</h2>
+        <div class="hint" id="control-pagos-hint">Presupuesto vs. costo real por proyecto — desvío en dinero y en tiempo</div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Ciudad</th>
+            <th>Presupuesto</th>
+            <th>Proyección (gestión + derechos)</th>
+            <th>Pagos realizados</th>
+            <th>Desvío en dinero</th>
+            <th>Concluidos</th>
+            <th>Desvío en tiempo (prom.)</th>
+          </tr>
+        </thead>
+        <tbody id="pagos-table-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="pagos-empty-state" style="display:none">
+      <div>Registra proyectos y trámites con presupuesto para ver aquí el control de pagos.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="filters">
+      <div class="field-sm search-field">
+        <label for="f-search">Buscar</label>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="f-search" placeholder="Trámite, responsable, nota…">
+      </div>
+      <div class="field-sm">
+        <label for="f-ciudad">Ciudad</label>
+        <select id="f-ciudad"><option value="">Todas</option></select>
+      </div>
+      <div class="field-sm">
+        <label for="f-proyecto">Proyecto</label>
+        <select id="f-proyecto"><option value="">Todos</option></select>
+      </div>
+      <div class="field-sm">
+        <label for="f-estado">Estado</label>
+        <select id="f-estado">
+          <option value="">Todos</option>
+          <option value="vigente">Vigente</option>
+          <option value="porVencer">Por vencer (≤30 días)</option>
+          <option value="urgente">Urgente (≤15 días)</option>
+          <option value="vencido">Vencido</option>
+          <option value="completado">Completado</option>
+        </select>
+      </div>
+      <button class="clear-filters" id="btn-clear-filters">Limpiar filtros</button>
+      <div class="filters-spacer"></div>
+    </div>
+
+    <div class="panel-head">
+      <div>
+        <h2>Línea de tiempo</h2>
+        <div class="hint">Barras por vigencia; agrupadas por proyecto o ciudad</div>
+      </div>
+      <div class="segmented" id="group-toggle">
+        <button data-group="proyecto" class="active">Por proyecto</button>
+        <button data-group="ciudad">Por ciudad</button>
+      </div>
+    </div>
+    <div class="area-filter" id="area-filter">
+      <span class="area-filter-label">Mostrar:</span>
+      <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
+      <label><input type="checkbox" data-area="comercial" checked> Comercial</label>
+      <label><input type="checkbox" data-area="obra" checked> Obra</label>
+      <label><input type="checkbox" data-area="due_diligence" checked> Due diligence</label>
+      <label><input type="checkbox" data-area="otro" checked> Otro</label>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
+      <span class="legend-item"><span class="dot" style="background:var(--warning-dot)"></span>Por vencer (≤30 días)</span>
+      <span class="legend-item"><span class="dot" style="background:var(--serious)"></span>Urgente (≤15 días)</span>
+      <span class="legend-item"><span class="dot" style="background:var(--critical)"></span>Vencido</span>
+      <span class="legend-item"><span class="dot" style="background:var(--text-muted)"></span>Completado</span>
+    </div>
+    <div class="timeline-scroll" id="timeline-scroll">
+      <div class="timeline-inner" id="timeline-inner"><div class="tl-empty">Cargando línea de tiempo…</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Detalle de trámites</h2>
+        <div class="hint" id="table-hint">0 trámites</div>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="nombre"><button>Trámite <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="proyecto"><button>Proyecto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="ciudad"><button>Ciudad <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="costo"><button>Costo total <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="fechaInicio"><button>Inicio <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="fechaVencimiento"><button>Vencimiento <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th data-sort="estado"><button>Estado <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
+            <th>Responsable</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"><tr><td colspan="9" class="loading-row">Cargando trámites…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div id="empty-state-text">No hay trámites que coincidan con estos filtros.</div>
+    </div>
+  </div>
+
+  <footer class="note">Los datos se guardan en el servidor y los ve todo tu equipo. Usa “Exportar” de vez en cuando para tener un respaldo.</footer>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- Proyecto: Add/Edit dialog -->
+<dialog id="dlg-proyecto-form" data-size="sm">
+  <div class="dlg-head">
+    <h2 id="dlg-proyecto-title">Nuevo proyecto</h2>
+    <button type="button" class="icon-btn" id="dlg-proyecto-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <div class="field" style="margin-bottom:12px">
+      <label for="in-proy-nombre">Nombre del proyecto <span class="req">*</span></label>
+      <input type="text" id="in-proy-nombre" placeholder="p. ej. Torre Reforma Norte">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label for="in-proy-ciudad">Ciudad <span class="req">*</span></label>
+      <input type="text" id="in-proy-ciudad" list="dl-ciudades" placeholder="p. ej. Guadalajara">
+    </div>
+    <div class="field">
+      <label for="in-proy-notas">Notas (cliente, referencia, etc.)</label>
+      <textarea id="in-proy-notas" placeholder="Opcional"></textarea>
+    </div>
+    <div class="status-msg err" id="proyecto-form-status" style="visibility:hidden"></div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-proyecto-cancel">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="dlg-proyecto-save">Guardar proyecto</button>
+  </div>
+</dialog>
+
+<!-- Proyecto: Delete dialog -->
+<dialog id="dlg-delete-proyecto" data-size="sm">
+  <div class="dlg-head">
+    <h2>Eliminar proyecto</h2>
+    <button type="button" class="icon-btn" id="dlg-delete-proyecto-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p id="dlg-delete-proyecto-msg" style="margin:0;color:var(--text-secondary)"></p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-delete-proyecto-cancel">Cerrar</button>
+    <button type="button" class="btn btn-danger" id="dlg-delete-proyecto-confirm">Eliminar</button>
+  </div>
+</dialog>
+
+<!-- Trámite: Add/Edit dialog -->
+<dialog id="dlg-form" data-size="lg">
+  <form method="dialog">
+    <div class="dlg-head">
+      <h2 id="dlg-form-title">Nuevo trámite</h2>
+      <button type="button" class="icon-btn" id="dlg-form-close" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="dlg-body">
+      <div class="form-grid">
+        <div class="field span-2">
+          <label for="in-nombre">Trámite <span class="req">*</span></label>
+          <input type="text" id="in-nombre" list="dl-tipos" required placeholder="p. ej. Licencia de Uso de Suelo">
+        </div>
+        <div class="field span-2">
+          <label for="in-proyecto">Proyecto <span class="req">*</span></label>
+          <select id="in-proyecto" required></select>
+          <span class="field-hint" id="in-proyecto-ciudad-hint">&nbsp;</span>
+        </div>
+
+        <div class="form-section-label span-2">Costos</div>
+        <div class="field">
+          <label for="in-presupuesto">Presupuesto (MXN)</label>
+          <input type="number" id="in-presupuesto" min="0" step="100" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="in-estatus">Estatus</label>
+          <select id="in-estatus">
+            <option value="no_iniciado">No iniciado</option>
+            <option value="en_proceso" selected>En proceso</option>
+            <option value="completado">Completado</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="in-costo-gestion">Costo de gestión (MXN)</label>
+          <input type="number" id="in-costo-gestion" min="0" step="100" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="in-costo-derechos">Costo de derechos (MXN)</label>
+          <input type="number" id="in-costo-derechos" min="0" step="100" placeholder="0">
+        </div>
+
+        <div class="form-section-label span-2">Fechas</div>
+        <div class="field">
+          <label for="in-inicio">Fecha de inicio</label>
+          <input type="date" id="in-inicio">
+        </div>
+        <div class="field">
+          <label for="in-tiempo-valor">Tiempo aproximado</label>
+          <div class="duration-row">
+            <input type="number" id="in-tiempo-valor" min="0" step="1" placeholder="0">
+            <select id="in-tiempo-unidad">
+              <option value="dias">días</option>
+              <option value="semanas">semanas</option>
+              <option value="meses">meses</option>
+            </select>
+          </div>
+        </div>
+        <div class="field span-2">
+          <label for="in-vencimiento">Fecha de vencimiento estimada <span class="req">*</span></label>
+          <input type="date" id="in-vencimiento" required>
+          <span class="field-hint">Se calcula sola a partir del tiempo aproximado; también puedes ajustarla a mano.</span>
+        </div>
+        <div class="field span-2">
+          <label for="in-conclusion-real">Fecha de conclusión real</label>
+          <input type="date" id="in-conclusion-real">
+          <span class="field-hint">Llénala cuando el trámite quede resuelto, para comparar contra la fecha estimada.</span>
+        </div>
+
+        <div class="field span-2">
+          <label for="in-responsable">Responsable</label>
+          <input type="text" id="in-responsable" list="dl-responsables" placeholder="p. ej. J. Álvarez">
+        </div>
+        <div class="field span-2">
+          <label for="in-notas">Notas</label>
+          <textarea id="in-notas" placeholder="Folio, dependencia, requisitos pendientes…"></textarea>
+        </div>
+
+        <div class="form-section-label span-2">Línea de tiempo</div>
+        <div class="field span-2">
+          <label class="checkbox-inline"><input type="checkbox" id="in-incluir-linea" checked> Mostrar este trámite en la línea de tiempo</label>
+          <span class="field-hint">Desmarca esta casilla si es un trámite ya resuelto o que no necesitas ver en la línea de tiempo (por ejemplo, uno muy antiguo).</span>
+        </div>
+      </div>
+
+      <div class="subelementos-block" id="subelementos-block" style="display:none">
+        <div class="form-section-label" style="border-top:none;padding-top:0">Subelementos</div>
+        <div class="field-hint" style="margin:-6px 0 10px">Pasos o documentos que forman parte de este trámite (por ejemplo, los distintos trámites que exige una Licencia de Edificación).</div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nombre</th><th>Fecha</th><th>Estatus</th><th>Línea de tiempo</th><th></th></tr></thead>
+            <tbody id="subelementos-body"></tbody>
+          </table>
+        </div>
+        <div class="form-grid" style="margin-top:10px">
+          <div class="field span-2">
+            <label for="sub-nombre">Nuevo subelemento</label>
+            <input type="text" id="sub-nombre" placeholder="p. ej. Dictamen de protección civil">
+          </div>
+          <div class="field">
+            <label for="sub-fecha">Fecha</label>
+            <input type="date" id="sub-fecha">
+          </div>
+          <div class="field">
+            <label for="sub-estatus">Estatus</label>
+            <select id="sub-estatus">
+              <option value="no_iniciado">No iniciado</option>
+              <option value="en_proceso" selected>En proceso</option>
+              <option value="completado">Completado</option>
+            </select>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:flex-end;padding:8px 0 0;border-top:none">
+          <button type="button" class="btn" id="btn-sub-add">Agregar subelemento</button>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-foot" style="justify-content:space-between;align-items:center">
+      <div class="status-msg err" id="form-status" style="visibility:hidden;margin:0"></div>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn" id="dlg-form-cancel">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="dlg-form-save">Guardar trámite</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<datalist id="dl-ciudades"></datalist>
+<datalist id="dl-tipos"></datalist>
+<datalist id="dl-responsables"></datalist>
+
+<!-- Trámite: Delete confirm dialog -->
+<dialog id="dlg-delete" data-size="sm">
+  <div class="dlg-head">
+    <h2>Eliminar trámite</h2>
+    <button type="button" class="icon-btn" id="dlg-delete-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0;color:var(--text-secondary)">¿Eliminar “<strong id="dlg-delete-name" style="color:var(--text-primary)"></strong>”? Esta acción no se puede deshacer.</p>
+    <p id="dlg-delete-pagos-note" class="field-hint" style="margin-top:8px"></p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-delete-cancel">Cancelar</button>
+    <button type="button" class="btn btn-danger" id="dlg-delete-confirm">Eliminar</button>
+  </div>
+</dialog>
+
+<!-- Export dialog -->
+<dialog id="dlg-export">
+  <div class="dlg-head">
+    <h2>Exportar datos</h2>
+    <button type="button" class="icon-btn" id="dlg-export-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0 0 10px;color:var(--text-secondary);font-size:12.5px">Descarga un respaldo en JSON, o cópialo para pegarlo en “Importar” en otra sesión. Incluye proyectos, trámites y pagos.</p>
+    <textarea class="copy-area" id="export-text" readonly></textarea>
+    <div class="status-msg ok" id="export-status" style="visibility:hidden">Copiado al portapapeles.</div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-export-cancel">Cerrar</button>
+    <button type="button" class="btn" id="btn-copy-export">Copiar</button>
+    <button type="button" class="btn btn-primary" id="btn-download-export">Descargar .json</button>
+  </div>
+</dialog>
+
+<!-- Import dialog -->
+<dialog id="dlg-import">
+  <div class="dlg-head">
+    <h2>Importar datos</h2>
+    <button type="button" class="icon-btn" id="dlg-import-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <div class="file-drop" style="margin-bottom:12px">
+      <input type="file" id="import-file" accept="application/json,.json">
+    </div>
+    <p style="margin:0 0 6px;color:var(--text-secondary);font-size:12.5px">…o pega el JSON exportado aquí (también acepta el formato de versiones anteriores):</p>
+    <textarea class="copy-area" id="import-text" placeholder="[ ... ]"></textarea>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;color:var(--text-secondary)">
+      <input type="checkbox" id="import-replace" style="width:auto">
+      Reemplazar todos los datos actuales (si no, se agregan a los existentes)
+    </label>
+    <div class="status-msg" id="import-status" style="visibility:hidden"></div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-import-cancel">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="btn-do-import">Importar</button>
+  </div>
+</dialog>
+
+<!-- Pagos: captura y estado de cuenta -->
+<dialog id="dlg-pagos" data-size="lg">
+  <div class="dlg-head">
+    <h2>Pagos y estado de cuenta</h2>
+    <button type="button" class="icon-btn" id="dlg-pagos-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <div class="requires-edit">
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Registrar un pago</div>
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="field">
+          <label for="pago-proyecto">Proyecto <span class="req">*</span></label>
+          <select id="pago-proyecto"></select>
+        </div>
+        <div class="field">
+          <label for="pago-tramite">Trámite <span class="req">*</span></label>
+          <select id="pago-tramite" disabled><option value="">Selecciona un proyecto primero…</option></select>
+        </div>
+        <div class="field">
+          <label for="pago-tipo">Tipo de pago <span class="req">*</span></label>
+          <select id="pago-tipo">
+            <option value="gestion">Gestión</option>
+            <option value="derechos">Derechos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pago-monto">Monto pagado (MXN) <span class="req">*</span></label>
+          <input type="number" id="pago-monto" min="0" step="100" placeholder="0">
+        </div>
+        <div class="field">
+          <label for="pago-fecha">Fecha de pago <span class="req">*</span></label>
+          <input type="date" id="pago-fecha">
+        </div>
+        <div class="field">
+          <label for="pago-notas">Notas</label>
+          <input type="text" id="pago-notas" placeholder="Folio, referencia…">
+        </div>
+      </div>
+      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+        <div class="status-msg" id="pago-form-status" style="visibility:hidden;margin:0"></div>
+        <button type="button" class="btn btn-primary" id="btn-pago-add">Registrar pago</button>
+      </div>
+    </div>
+
+    <div class="form-section-label">Estado de cuenta</div>
+    <div class="field" style="max-width:320px;margin:10px 0">
+      <label for="pago-filtro-proyecto">Ver pagos de</label>
+      <select id="pago-filtro-proyecto"><option value="">Todos los proyectos</option></select>
+    </div>
+    <div class="ledger-summary" id="pagos-ledger-summary"></div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Trámite</th>
+            <th>Proyecto</th>
+            <th>Tipo</th>
+            <th>Monto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="pagos-ledger-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="pagos-ledger-empty" style="display:none">
+      <div>Aún no registran pagos. Usa el formulario de arriba para capturar el primero.</div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-pagos-done">Cerrar</button>
+  </div>
+</dialog>
+
+<!-- Hitos: hitos de otras áreas (comercial, obra, due diligence…) -->
+<dialog id="dlg-hitos" data-size="lg">
+  <div class="dlg-head">
+    <h2>Hitos de otras áreas</h2>
+    <button type="button" class="icon-btn" id="dlg-hitos-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Hitos que no son trámites (comercial, obra, due diligence, etc.) pero que quieres ver en la línea de tiempo.</p>
+    <div class="requires-edit">
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Registrar un hito</div>
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="field">
+          <label for="hito-proyecto">Proyecto <span class="req">*</span></label>
+          <select id="hito-proyecto"></select>
+        </div>
+        <div class="field">
+          <label for="hito-area">Área <span class="req">*</span></label>
+          <select id="hito-area">
+            <option value="comercial">Comercial</option>
+            <option value="obra">Obra</option>
+            <option value="due_diligence">Due diligence</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label for="hito-nombre">Nombre <span class="req">*</span></label>
+          <input type="text" id="hito-nombre" placeholder="p. ej. Firma de contrato de preventa">
+        </div>
+        <div class="field">
+          <label for="hito-fecha">Fecha</label>
+          <input type="date" id="hito-fecha">
+        </div>
+        <div class="field">
+          <label for="hito-estatus">Estatus</label>
+          <select id="hito-estatus">
+            <option value="no_iniciado">No iniciado</option>
+            <option value="en_proceso" selected>En proceso</option>
+            <option value="completado">Completado</option>
+          </select>
+        </div>
+        <div class="field span-2">
+          <label for="hito-notas">Notas</label>
+          <input type="text" id="hito-notas" placeholder="Opcional">
+        </div>
+        <div class="field span-2">
+          <label class="checkbox-inline"><input type="checkbox" id="hito-incluir-linea" checked> Mostrar en la línea de tiempo</label>
+        </div>
+      </div>
+      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+        <div class="status-msg" id="hito-form-status" style="visibility:hidden;margin:0"></div>
+        <button type="button" class="btn btn-primary" id="btn-hito-add">Registrar hito</button>
+      </div>
+    </div>
+
+    <div class="form-section-label">Hitos registrados</div>
+    <div class="field" style="max-width:320px;margin:10px 0">
+      <label for="hito-filtro-proyecto">Ver hitos de</label>
+      <select id="hito-filtro-proyecto"><option value="">Todos los proyectos</option></select>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Nombre</th>
+            <th>Proyecto</th>
+            <th>Área</th>
+            <th>Estatus</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="hitos-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="hitos-empty" style="display:none">
+      <div>Aún no registran hitos. Usa el formulario de arriba para capturar el primero.</div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-hitos-done">Cerrar</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var MS_DAY = 86400000;
+  var PAGO_TIPOS = ["gestion", "derechos"];
+  var DURATION_UNITS = ["dias", "semanas", "meses"];
+  var DURATION_LABELS = { dias: ["día", "días"], semanas: ["semana", "semanas"], meses: ["mes", "meses"] };
+
+  function uid() { return "id" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+
+  var HITO_AREAS = ["comercial", "obra", "due_diligence", "otro"];
+  var AREA_LABELS = { tramites: "Trámites", comercial: "Comercial", obra: "Obra", due_diligence: "Due diligence", otro: "Otro" };
+
+  var state = {
+    role: null,
+    proyectos: [],
+    tramites: [],
+    pagos: [],
+    subelementos: [],
+    hitos: [],
+    filters: {
+      search: "", ciudad: "", proyectoId: "", estado: "",
+      areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
+    },
+    group: "proyecto",
+    sort: { key: "fechaVencimiento", dir: 1 },
+    editingTramiteId: null,
+    deletingTramiteId: null,
+    editingProyectoId: null,
+    deletingProyectoId: null
+  };
+
+  var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
+  function parseDate(s) { if (!s) return null; var d = new Date(s + "T00:00:00"); return isNaN(d) ? null : d; }
+  function fmtDate(s) {
+    var d = parseDate(s);
+    if (!d) return "—";
+    return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  var fmtMoney = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+  function fmtMoneySigned(v) {
+    var s = fmtMoney.format(Math.abs(v));
+    return (v > 0 ? "+" : v < 0 ? "−" : "") + s;
+  }
+
+  function addDuration(date, value, unit) {
+    var d = new Date(date);
+    if (unit === "semanas") d.setDate(d.getDate() + value * 7);
+    else if (unit === "meses") d.setMonth(d.getMonth() + value);
+    else d.setDate(d.getDate() + value);
+    return d;
+  }
+  function durationLabel(t) {
+    if (!t.tiempoValor) return "";
+    var pair = DURATION_LABELS[t.tiempoUnidad] || DURATION_LABELS.dias;
+    return "~" + t.tiempoValor + " " + (t.tiempoValor === 1 ? pair[0] : pair[1]);
+  }
+  function totalCosto(t) { return (Number(t.costoGestion) || 0) + (Number(t.costoDerechos) || 0); }
+  function moneyDeviation(t) {
+    if (t.presupuesto === null || t.presupuesto === undefined || t.presupuesto === "") return null;
+    return totalCosto(t) - Number(t.presupuesto);
+  }
+  function timeDeviationDays(t) {
+    if (!t.fechaConclusionReal || !t.fechaVencimiento) return null;
+    var real = parseDate(t.fechaConclusionReal), est = parseDate(t.fechaVencimiento);
+    if (!real || !est) return null;
+    return Math.round((real - est) / MS_DAY);
+  }
+  function devClass(v) { return v > 0 ? "dev-pos" : v < 0 ? "dev-neg" : "dev-zero"; }
+
+  function computeState(item) {
+    if (item.estatus === "completado") return "completado";
+    var due = parseDate(item.fechaVencimiento);
+    if (!due) return "vigente";
+    var diff = Math.round((due - todayMid) / MS_DAY);
+    if (diff < 0) return "vencido";
+    if (diff <= 15) return "urgente";
+    if (diff <= 30) return "porVencer";
+    return "vigente";
+  }
+  function daysLabel(item) {
+    var due = parseDate(item.fechaVencimiento);
+    if (!due) return "";
+    var diff = Math.round((due - todayMid) / MS_DAY);
+    if (diff === 0) return "Vence hoy";
+    if (diff > 0) return "Vence en " + diff + " día" + (diff === 1 ? "" : "s");
+    return "Vencido hace " + Math.abs(diff) + " día" + (Math.abs(diff) === 1 ? "" : "s");
+  }
+  var STATE_LABEL = { vigente: "Vigente", porVencer: "Por vencer", urgente: "Urgente", vencido: "Vencido", completado: "Completado" };
+  var ESTATUS_LABEL = { no_iniciado: "No iniciado", en_proceso: "En proceso", completado: "Completado" };
+
+  /* ---------------- Networking ---------------- */
+  function showBanner(msg) {
+    var b = document.getElementById("net-banner");
+    document.getElementById("net-banner-text").textContent = msg || "No se pudo conectar con el servidor.";
+    b.classList.add("show");
+  }
+  function hideBanner() { document.getElementById("net-banner").classList.remove("show"); }
+
+  function api(url, options) {
+    options = options || {};
+    options.headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+    return fetch(url, options).then(function (res) {
+      if (res.status === 401) { window.location.href = "/login"; return Promise.reject(new Error("No autorizado")); }
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) throw new Error(data.error || ("Error " + res.status));
+        return data;
+      });
+    });
+  }
+
+  function refreshAll() {
+    return api("/api/data").then(function (data) {
+      state.proyectos = data.proyectos;
+      state.tramites = data.tramites;
+      state.pagos = data.pagos;
+      state.subelementos = data.subelementos || [];
+      state.hitos = data.hitos || [];
+      hideBanner();
+      renderAll();
+    }).catch(function (err) {
+      showBanner("No se pudo cargar la información: " + err.message);
+    });
+  }
+
+  /* ---------------- Proyecto helpers ---------------- */
+  function getProyecto(id) { return state.proyectos.find(function (p) { return p.id === id; }); }
+  function proyectoNombre(t) { var p = getProyecto(t.proyectoId); return p ? p.nombre : "(proyecto eliminado)"; }
+  function proyectoCiudad(t) { var p = getProyecto(t.proyectoId); return p ? p.ciudad : "—"; }
+  function proyectosSorted() { return state.proyectos.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); }); }
+
+  /* ---------------- Pagos: helpers ---------------- */
+  function getTramite(id) { return state.tramites.find(function (t) { return t.id === id; }); }
+  function pagoTipoLabel(tipo) { return tipo === "derechos" ? "Derechos" : "Gestión"; }
+  function pagosForTramites(ids) { return state.pagos.filter(function (pg) { return ids.indexOf(pg.tramiteId) !== -1; }); }
+  function pagosTotalForTramites(ids) { return pagosForTramites(ids).reduce(function (s, pg) { return s + Number(pg.monto); }, 0); }
+
+  /* ---------------- Subelementos / hitos: helpers ---------------- */
+  function subelementosForTramite(id) { return state.subelementos.filter(function (se) { return se.tramiteId === id; }); }
+  function getHito(id) { return state.hitos.find(function (h) { return h.id === id; }); }
+
+  function uniqueCiudades() {
+    var set = {};
+    state.proyectos.forEach(function (p) { if (p.ciudad) set[p.ciudad] = true; });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, "es"); });
+  }
+  function uniqueFrom(arr, field) {
+    var set = {};
+    arr.forEach(function (it) { if (it[field]) set[it[field]] = true; });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, "es"); });
+  }
+
+  function escapeAttr(s) { return String(s).replace(/"/g, "&quot;"); }
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
+    });
+  }
+  function fillSelect(id, values, allLabel) {
+    var el = document.getElementById(id);
+    var current = el.value;
+    el.innerHTML = "";
+    var optAll = document.createElement("option");
+    optAll.value = ""; optAll.textContent = allLabel;
+    el.appendChild(optAll);
+    values.forEach(function (v) {
+      var o = document.createElement("option"); o.value = v; o.textContent = v; el.appendChild(o);
+    });
+    if (values.indexOf(current) !== -1) el.value = current;
+  }
+  function fillProyectoFilterSelect() {
+    var el = document.getElementById("f-proyecto");
+    var current = el.value;
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Todos</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + '</option>';
+    }).join("");
+    if (sorted.some(function (p) { return p.id === current; })) el.value = current;
+  }
+  function fillDatalist(id, values) {
+    var el = document.getElementById(id);
+    el.innerHTML = values.map(function (v) { return '<option value="' + escapeAttr(v) + '">'; }).join("");
+  }
+
+  function populateFilterOptions() {
+    fillSelect("f-ciudad", uniqueCiudades(), "Todas");
+    fillProyectoFilterSelect();
+    fillDatalist("dl-ciudades", uniqueCiudades());
+    fillDatalist("dl-tipos", uniqueFrom(state.tramites, "nombre"));
+    fillDatalist("dl-responsables", uniqueFrom(state.tramites, "responsable"));
+  }
+
+  function getFilteredTramites() {
+    var f = state.filters;
+    var q = f.search.trim().toLowerCase();
+    return state.tramites.filter(function (it) {
+      var ciudad = proyectoCiudad(it), nombreProyecto = proyectoNombre(it);
+      if (f.ciudad && ciudad !== f.ciudad) return false;
+      if (f.proyectoId && it.proyectoId !== f.proyectoId) return false;
+      if (f.estado && computeState(it) !== f.estado) return false;
+      if (q) {
+        var hay = (it.nombre + " " + nombreProyecto + " " + ciudad + " " + (it.responsable || "") + " " + (it.notas || "")).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ---------------- Stats ---------------- */
+  function renderStats(filtered) {
+    document.getElementById("stat-total").textContent = filtered.length;
+    document.getElementById("stat-total-foot").textContent = "de " + state.tramites.length + " en total";
+    var cost = filtered.reduce(function (s, it) { return s + totalCosto(it); }, 0);
+    document.getElementById("stat-cost").textContent = fmtMoney.format(cost);
+    var pagosSum = pagosTotalForTramites(filtered.map(function (it) { return it.id; }));
+    document.getElementById("stat-pagos").textContent = fmtMoney.format(pagosSum);
+    var soon = 0, overdue = 0;
+    filtered.forEach(function (it) {
+      var s = computeState(it);
+      if (s === "porVencer" || s === "urgente") soon++;
+      if (s === "vencido") overdue++;
+    });
+    document.getElementById("stat-soon").textContent = soon;
+    document.getElementById("stat-overdue").textContent = overdue;
+  }
+
+  /* ---------------- Proyectos panel ---------------- */
+  function renderProyectos() {
+    var tbody = document.getElementById("proyectos-table-body");
+    var hint = document.getElementById("proyectos-hint");
+    var sorted = proyectosSorted();
+    hint.textContent = sorted.length + " proyecto" + (sorted.length === 1 ? "" : "s");
+    document.getElementById("proyectos-empty-state").style.display = sorted.length ? "none" : "block";
+
+    tbody.innerHTML = sorted.map(function (p) {
+      var linked = state.tramites.filter(function (t) { return t.proyectoId === p.id; });
+      var totalCost = linked.reduce(function (s, t) { return s + totalCosto(t); }, 0);
+      var pending = linked.filter(function (t) { return t.estatus !== "completado" && t.fechaVencimiento; })
+        .sort(function (a, b) { return a.fechaVencimiento.localeCompare(b.fechaVencimiento); });
+      var nextDue = pending.length ? fmtDate(pending[0].fechaVencimiento) : "—";
+      return '<tr>' +
+        '<td class="cell-tramite"><span class="t-name">' + escapeHtml(p.nombre) + '</span>' +
+          (p.notas ? '<span class="t-type">' + escapeHtml(p.notas) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(p.ciudad) + '</td>' +
+        '<td>' + linked.length + '</td>' +
+        '<td class="cell-cost">' + fmtMoney.format(totalCost) + '</td>' +
+        '<td class="cell-date">' + nextDue + '</td>' +
+        '<td><div class="row-actions requires-edit">' +
+          '<button class="icon-btn edit-proy-btn" data-id="' + p.id + '" aria-label="Editar proyecto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
+          '<button class="icon-btn danger del-proy-btn" data-id="' + p.id + '" aria-label="Eliminar proyecto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join("");
+
+    document.querySelectorAll(".edit-proy-btn").forEach(function (b) { b.addEventListener("click", function () { openProyectoForm(b.dataset.id); }); });
+    document.querySelectorAll(".del-proy-btn").forEach(function (b) { b.addEventListener("click", function () { openDeleteProyecto(b.dataset.id); }); });
+
+    var addBtn = document.getElementById("btn-add");
+    addBtn.disabled = !state.proyectos.length;
+    addBtn.title = state.proyectos.length ? "" : "Registra un proyecto primero";
+  }
+
+  /* ---------------- Control de pagos panel ---------------- */
+  function renderPagos() {
+    var tbody = document.getElementById("pagos-table-body");
+    var hintEl = document.getElementById("control-pagos-hint");
+    var activeProyectoId = state.filters.proyectoId;
+    var allSorted = proyectosSorted();
+    var sorted = activeProyectoId ? allSorted.filter(function (p) { return p.id === activeProyectoId; }) : allSorted;
+
+    if (hintEl) {
+      if (activeProyectoId) {
+        var activeP = getProyecto(activeProyectoId);
+        hintEl.textContent = "Filtrado por proyecto: " + (activeP ? activeP.nombre : "—") + " (usa el filtro “Proyecto” de abajo para cambiarlo o quitarlo)";
+      } else {
+        hintEl.textContent = "Presupuesto vs. costo real por proyecto — desvío en dinero y en tiempo";
+      }
+    }
+    document.getElementById("pagos-empty-state").style.display = sorted.length ? "none" : "block";
+
+    tbody.innerHTML = sorted.map(function (p) {
+      var linked = state.tramites.filter(function (t) { return t.proyectoId === p.id; });
+      var linkedIds = linked.map(function (t) { return t.id; });
+      var totalPresupuesto = linked.reduce(function (s, t) { return s + (t.presupuesto != null ? Number(t.presupuesto) : 0); }, 0);
+      var totalProyeccion = linked.reduce(function (s, t) { return s + totalCosto(t); }, 0);
+      var totalPagosReal = pagosTotalForTramites(linkedIds);
+      var desvioMoney = totalProyeccion - totalPresupuesto;
+      var concluded = linked.filter(function (t) { return t.fechaConclusionReal; });
+      var timeDevs = concluded.map(timeDeviationDays).filter(function (d) { return d !== null; });
+      var avgTimeDev = timeDevs.length ? Math.round(timeDevs.reduce(function (a, b) { return a + b; }, 0) / timeDevs.length) : null;
+
+      var moneyText = totalPresupuesto ? fmtMoneySigned(desvioMoney) : "—";
+      var moneyClass = totalPresupuesto ? devClass(desvioMoney) : "dev-zero";
+      var timeText = avgTimeDev === null ? "—" : (avgTimeDev > 0 ? "+" : avgTimeDev < 0 ? "−" : "") + Math.abs(avgTimeDev) + " día" + (Math.abs(avgTimeDev) === 1 ? "" : "s");
+      var timeClass = avgTimeDev === null ? "dev-zero" : devClass(avgTimeDev);
+
+      return '<tr>' +
+        '<td class="t-name">' + escapeHtml(p.nombre) + '</td>' +
+        '<td>' + escapeHtml(p.ciudad) + '</td>' +
+        '<td class="cell-cost">' + (totalPresupuesto ? fmtMoney.format(totalPresupuesto) : "—") + '</td>' +
+        '<td class="cell-cost">' + fmtMoney.format(totalProyeccion) + '</td>' +
+        '<td class="cell-cost">' + fmtMoney.format(totalPagosReal) + '</td>' +
+        '<td class="cell-cost ' + moneyClass + '">' + moneyText + '</td>' +
+        '<td>' + concluded.length + ' / ' + linked.length + '</td>' +
+        '<td class="cell-cost ' + timeClass + '">' + timeText + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  /* ---------------- Table ---------------- */
+  function renderTable(filtered) {
+    var tbody = document.getElementById("table-body");
+    var hint = document.getElementById("table-hint");
+    hint.textContent = filtered.length + " trámite" + (filtered.length === 1 ? "" : "s");
+
+    var sorted = filtered.slice().sort(function (a, b) {
+      var k = state.sort.key, dir = state.sort.dir;
+      var av, bv;
+      if (k === "costo") { av = totalCosto(a); bv = totalCosto(b); }
+      else if (k === "fechaInicio" || k === "fechaVencimiento") { av = a[k] || ""; bv = b[k] || ""; }
+      else if (k === "estado") { av = computeState(a); bv = computeState(b); }
+      else if (k === "proyecto") { av = proyectoNombre(a).toLowerCase(); bv = proyectoNombre(b).toLowerCase(); }
+      else if (k === "ciudad") { av = proyectoCiudad(a).toLowerCase(); bv = proyectoCiudad(b).toLowerCase(); }
+      else { av = (a[k] || "").toString().toLowerCase(); bv = (b[k] || "").toString().toLowerCase(); }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+
+    document.getElementById("empty-state").style.display = sorted.length ? "none" : "block";
+    document.getElementById("empty-state-text").textContent = state.proyectos.length
+      ? "No hay trámites que coincidan con estos filtros."
+      : "Registra un proyecto arriba y luego agrega tu primer trámite.";
+
+    tbody.innerHTML = sorted.map(function (it) {
+      var st = computeState(it);
+      var dur = durationLabel(it);
+      var mDev = moneyDeviation(it);
+      var tDev = timeDeviationDays(it);
+      var costSub = '<span class="sub-note">Gestión ' + fmtMoney.format(Number(it.costoGestion) || 0) + ' · Derechos ' + fmtMoney.format(Number(it.costoDerechos) || 0) + '</span>' +
+        (mDev !== null ? '<span class="sub-note ' + (mDev > 0 ? "dev-pos" : mDev < 0 ? "dev-neg" : "") + '">Presupuesto ' + fmtMoney.format(Number(it.presupuesto)) + ' (' + fmtMoneySigned(mDev) + ')</span>' : '');
+      var dateSub = dur ? '<span class="sub-note">' + dur + '</span>' : '';
+      if (it.fechaConclusionReal) {
+        dateSub += '<span class="sub-note ' + (tDev > 0 ? "dev-pos" : tDev < 0 ? "dev-neg" : "") + '">Real: ' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span>';
+      }
+      return '<tr data-id="' + it.id + '">' +
+        '<td class="cell-tramite"><span class="t-name">' + escapeHtml(it.nombre) + '</span>' +
+          (it.notas ? '<span class="t-type">' + escapeHtml(it.notas) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(proyectoNombre(it)) + '</td>' +
+        '<td>' + escapeHtml(proyectoCiudad(it)) + '</td>' +
+        '<td class="cell-cost">' + fmtMoney.format(totalCosto(it)) + costSub + '</td>' +
+        '<td class="cell-date">' + fmtDate(it.fechaInicio) + '</td>' +
+        '<td class="cell-date">' + fmtDate(it.fechaVencimiento) + dateSub + '</td>' +
+        '<td><span class="pill st-' + st + '"><span class="dot st-' + st + '"></span>' + STATE_LABEL[st] +
+          (st !== "completado" ? ' · ' + daysLabel(it).replace(/^(Vence(?: hoy)?(?: en)?|Vencido hace)\s*/, function (m) { return ""; }) : '') +
+        '</span></td>' +
+        '<td>' + escapeHtml(it.responsable || "—") + '</td>' +
+        '<td><div class="row-actions requires-edit">' +
+          '<button class="icon-btn edit-btn" data-id="' + it.id + '" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
+          '<button class="icon-btn danger del-btn" data-id="' + it.id + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join("");
+
+    document.querySelectorAll(".edit-btn").forEach(function (b) { b.addEventListener("click", function () { openForm(b.dataset.id); }); });
+    document.querySelectorAll(".del-btn").forEach(function (b) { b.addEventListener("click", function () { openDelete(b.dataset.id); }); });
+
+    document.querySelectorAll("thead th[data-sort] button").forEach(function (b) {
+      var key = b.closest("th").dataset.sort;
+      b.classList.toggle("sorted", key === state.sort.key);
+      var svg = b.querySelector("svg");
+      if (key === state.sort.key) svg.style.transform = state.sort.dir === 1 ? "rotate(0deg)" : "rotate(180deg)";
+    });
+  }
+
+  /* ---------------- Timeline: combina trámites + subelementos + hitos ---------------- */
+  function getTimelineItems() {
+    var f = state.filters;
+    var q = f.search.trim().toLowerCase();
+    var areas = f.areas;
+    var items = [];
+
+    state.tramites.forEach(function (t) {
+      if (t.incluirLineaTiempo === false || !areas.tramites) return;
+      var ciudad = proyectoCiudad(t), nombreProyecto = proyectoNombre(t);
+      if (f.ciudad && ciudad !== f.ciudad) return;
+      if (f.proyectoId && t.proyectoId !== f.proyectoId) return;
+      if (f.estado && computeState(t) !== f.estado) return;
+      if (q) {
+        var hay = (t.nombre + " " + nombreProyecto + " " + ciudad + " " + (t.responsable || "") + " " + (t.notas || "")).toLowerCase();
+        if (hay.indexOf(q) === -1) return;
+      }
+      items.push({
+        id: "t:" + t.id, kind: "tramite", area: "tramites",
+        nombre: t.nombre, proyectoId: t.proyectoId,
+        fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento, estatus: t.estatus,
+        presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos,
+        fechaConclusionReal: t.fechaConclusionReal, tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad
+      });
+    });
+
+    state.subelementos.forEach(function (se) {
+      if (se.incluirLineaTiempo === false || !areas.tramites) return;
+      var parent = getTramite(se.tramiteId);
+      if (!parent) return;
+      var ciudad = proyectoCiudad(parent), nombreProyecto = proyectoNombre(parent);
+      if (f.ciudad && ciudad !== f.ciudad) return;
+      if (f.proyectoId && parent.proyectoId !== f.proyectoId) return;
+      if (f.estado && computeState(se) !== f.estado) return;
+      if (q) {
+        var hay2 = (se.nombre + " " + parent.nombre + " " + nombreProyecto + " " + ciudad).toLowerCase();
+        if (hay2.indexOf(q) === -1) return;
+      }
+      items.push({
+        id: "s:" + se.id, kind: "subelemento", area: "tramites",
+        nombre: parent.nombre + " → " + se.nombre, proyectoId: parent.proyectoId,
+        fechaInicio: se.fecha, fechaVencimiento: se.fecha, estatus: se.estatus
+      });
+    });
+
+    state.hitos.forEach(function (h) {
+      if (h.incluirLineaTiempo === false || !areas[h.area]) return;
+      var ciudad = proyectoCiudad(h), nombreProyecto = proyectoNombre(h);
+      if (f.ciudad && ciudad !== f.ciudad) return;
+      if (f.proyectoId && h.proyectoId !== f.proyectoId) return;
+      if (f.estado && computeState(h) !== f.estado) return;
+      if (q) {
+        var hay3 = (h.nombre + " " + nombreProyecto + " " + ciudad + " " + (h.notas || "")).toLowerCase();
+        if (hay3.indexOf(q) === -1) return;
+      }
+      items.push({
+        id: "h:" + h.id, kind: "hito", area: h.area,
+        nombre: "[" + (AREA_LABELS[h.area] || "Otro") + "] " + h.nombre, proyectoId: h.proyectoId,
+        fechaInicio: h.fecha, fechaVencimiento: h.fecha, estatus: h.estatus, notas: h.notas
+      });
+    });
+
+    return items;
+  }
+
+  function renderTimeline(filtered) {
+    var host = document.getElementById("timeline-inner");
+    if (!filtered.length) {
+      host.innerHTML = '<div class="tl-empty">' + (state.proyectos.length ? "No hay elementos que coincidan con estos filtros." : "Registra un proyecto y agrega trámites para ver la línea de tiempo.") + '</div>';
+      return;
+    }
+    var groupKey = state.group;
+    var groups = {};
+    filtered.forEach(function (it) {
+      var g = groupKey === "proyecto" ? proyectoNombre(it) : proyectoCiudad(it);
+      (groups[g] = groups[g] || []).push(it);
+    });
+    var groupNames = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, "es"); });
+
+    var allDates = [];
+    filtered.forEach(function (it) {
+      var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
+      var e = parseDate(it.fechaVencimiento) || s;
+      if (s) allDates.push(s);
+      if (e) allDates.push(e);
+    });
+    allDates.push(todayMid);
+    var minDate = new Date(Math.min.apply(null, allDates));
+    var maxDate = new Date(Math.max.apply(null, allDates));
+    minDate.setDate(minDate.getDate() - 10);
+    maxDate.setDate(maxDate.getDate() + 10);
+    minDate.setDate(1);
+    var totalDays = Math.max(30, Math.round((maxDate - minDate) / MS_DAY));
+    var pxPerDay = Math.max(3.2, Math.min(9, 1500 / totalDays));
+    var trackWidth = Math.round(totalDays * pxPerDay);
+    var LABEL_W = 230;
+
+    function xFor(date) { return Math.round((date - minDate) / MS_DAY * pxPerDay); }
+
+    var ticks = [];
+    var cur = new Date(minDate);
+    while (cur <= maxDate) {
+      ticks.push(new Date(cur));
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
+      ticks.map(function (t) {
+        return '<div class="tl-axis-tick" style="left:' + xFor(t) + 'px"><span>' +
+          t.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }) + '</span></div>';
+      }).join("") + '</div>';
+
+    var groupsHtml = groupNames.map(function (gName) {
+      var rows = groups[gName].slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
+      var totalCost = rows.filter(function (it) { return it.kind === "tramite"; }).reduce(function (s, it) { return s + totalCosto(it); }, 0);
+      var rowsHtml = rows.map(function (it) {
+        var st = computeState(it);
+        var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
+        var e = parseDate(it.fechaVencimiento) || s;
+        var left = xFor(s);
+        var width = Math.max(6, xFor(e) - left);
+        var otherField = groupKey === "proyecto" ? proyectoCiudad(it) : proyectoNombre(it);
+        return '<div class="tl-row">' +
+          '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + '<span class="tl-sub">' + escapeHtml(otherField) + '</span></div>' +
+          '<div class="tl-track" style="width:' + trackWidth + 'px">' +
+            '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
+            '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px"></div>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+      return '<div class="tl-group">' +
+        '<div class="tl-group-head"><h3>' + escapeHtml(gName) + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + ' · ' + fmtMoney.format(totalCost) + '</span></div>' +
+        rowsHtml +
+      '</div>';
+    }).join("");
+
+    host.innerHTML = axisHtml + groupsHtml;
+
+    host.querySelectorAll(".tl-bar").forEach(function (bar) {
+      var it = filtered.find(function (x) { return x.id === bar.dataset.id; });
+      if (!it) return;
+      bar.addEventListener("mouseenter", function (ev) { showTooltip(ev, it); });
+      bar.addEventListener("mousemove", function (ev) { positionTooltip(ev); });
+      bar.addEventListener("mouseleave", hideTooltip);
+    });
+  }
+
+  function showTooltip(ev, it) {
+    var tooltip = document.getElementById("tooltip");
+    var st = computeState(it);
+    var isTramite = it.kind === "tramite" || !it.kind;
+    var dur = isTramite ? durationLabel(it) : "";
+    var mDev = isTramite ? moneyDeviation(it) : null;
+    var tDev = timeDeviationDays(it);
+    var kindLabel = it.kind === "subelemento" ? "Subelemento" : it.kind === "hito" ? "Hito · " + (AREA_LABELS[it.area] || "Otro") : "";
+    tooltip.innerHTML = '<div class="tt-title">' + escapeHtml(it.nombre) + '</div>' +
+      (kindLabel ? '<div class="tt-row"><span>Tipo</span><span>' + kindLabel + '</span></div>' : '') +
+      '<div class="tt-row"><span>Proyecto</span><span>' + escapeHtml(proyectoNombre(it)) + '</span></div>' +
+      '<div class="tt-row"><span>Ciudad</span><span>' + escapeHtml(proyectoCiudad(it)) + '</span></div>' +
+      (isTramite ? '<div class="tt-row"><span>Costo total</span><span>' + fmtMoney.format(totalCosto(it)) + '</span></div>' : '') +
+      (isTramite && it.presupuesto != null ? '<div class="tt-row"><span>Presupuesto</span><span>' + fmtMoney.format(Number(it.presupuesto)) + '</span></div>' : '') +
+      (mDev !== null ? '<div class="tt-row"><span>Desvío $</span><span>' + fmtMoneySigned(mDev) + '</span></div>' : '') +
+      (dur ? '<div class="tt-row"><span>Tiempo aprox.</span><span>' + dur + '</span></div>' : '') +
+      '<div class="tt-row"><span>Fecha</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>' +
+      (it.fechaConclusionReal ? '<div class="tt-row"><span>Concluyó</span><span>' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span></div>' : '') +
+      (it.notas ? '<div class="tt-row"><span>Notas</span><span>' + escapeHtml(it.notas) + '</span></div>' : '') +
+      '<div class="tt-row"><span>Estado</span><span>' + STATE_LABEL[st] + (st !== "completado" ? " · " + daysLabel(it) : "") + '</span></div>';
+    tooltip.classList.add("show");
+    positionTooltip(ev);
+  }
+  function positionTooltip(ev) {
+    var tooltip = document.getElementById("tooltip");
+    var x = ev.clientX + 14, y = ev.clientY + 14;
+    var rect = tooltip.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 10) x = ev.clientX - rect.width - 14;
+    if (y + rect.height > window.innerHeight - 10) y = ev.clientY - rect.height - 14;
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+  function hideTooltip() { document.getElementById("tooltip").classList.remove("show"); }
+
+  /* ---------------- Render orchestration ---------------- */
+  function renderAll() {
+    populateFilterOptions();
+    renderProyectos();
+    renderPagos();
+    var filtered = getFilteredTramites();
+    renderStats(filtered);
+    renderTable(filtered);
+    renderTimeline(getTimelineItems());
+  }
+
+  /* ---------------- Filters wiring ---------------- */
+  document.getElementById("f-search").addEventListener("input", function (e) { state.filters.search = e.target.value; renderAll(); });
+  document.getElementById("f-ciudad").addEventListener("change", function (e) { state.filters.ciudad = e.target.value; renderAll(); });
+  document.getElementById("f-proyecto").addEventListener("change", function (e) { state.filters.proyectoId = e.target.value; renderAll(); });
+  document.getElementById("f-estado").addEventListener("change", function (e) { state.filters.estado = e.target.value; renderAll(); });
+  document.getElementById("btn-clear-filters").addEventListener("click", function () {
+    state.filters = {
+      search: "", ciudad: "", proyectoId: "", estado: "",
+      areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
+    };
+    document.getElementById("f-search").value = "";
+    document.getElementById("f-ciudad").value = "";
+    document.getElementById("f-proyecto").value = "";
+    document.getElementById("f-estado").value = "";
+    document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) { cb.checked = true; });
+    renderAll();
+  });
+  document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      state.filters.areas[cb.dataset.area] = cb.checked;
+      renderTimeline(getTimelineItems());
+    });
+  });
+  document.querySelectorAll("#group-toggle button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll("#group-toggle button").forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active");
+      state.group = b.dataset.group;
+      renderAll();
+    });
+  });
+  document.querySelectorAll("thead th[data-sort]").forEach(function (th) {
+    th.querySelector("button").addEventListener("click", function () {
+      var key = th.dataset.sort;
+      if (state.sort.key === key) state.sort.dir *= -1;
+      else { state.sort.key = key; state.sort.dir = 1; }
+      renderAll();
+    });
+  });
+
+  /* ---------------- Logout ---------------- */
+  document.getElementById("btn-logout").addEventListener("click", function () {
+    api("/api/logout", { method: "POST" }).finally(function () { window.location.href = "/login"; });
+  });
+
+  /* ---------------- Proyecto: add/edit ---------------- */
+  var dlgProyectoForm = document.getElementById("dlg-proyecto-form");
+  function setProyectoFormStatus(msg) {
+    var el = document.getElementById("proyecto-form-status");
+    el.textContent = msg || "";
+    el.style.visibility = msg ? "visible" : "hidden";
+  }
+  function openProyectoForm(id) {
+    state.editingProyectoId = id || null;
+    var p = id ? getProyecto(id) : null;
+    document.getElementById("dlg-proyecto-title").textContent = p ? "Editar proyecto" : "Nuevo proyecto";
+    document.getElementById("in-proy-nombre").value = p ? p.nombre : "";
+    document.getElementById("in-proy-ciudad").value = p ? p.ciudad : "";
+    document.getElementById("in-proy-notas").value = p ? (p.notas || "") : "";
+    setProyectoFormStatus("");
+    fillDatalist("dl-ciudades", uniqueCiudades());
+    dlgProyectoForm.showModal();
+    document.getElementById("in-proy-nombre").focus();
+  }
+  document.getElementById("btn-add-proyecto").addEventListener("click", function () { openProyectoForm(null); });
+  document.getElementById("btn-add-proyecto-empty").addEventListener("click", function () { openProyectoForm(null); });
+  document.getElementById("dlg-proyecto-close").addEventListener("click", function () { dlgProyectoForm.close(); });
+  document.getElementById("dlg-proyecto-cancel").addEventListener("click", function () { dlgProyectoForm.close(); });
+  document.getElementById("dlg-proyecto-save").addEventListener("click", function () {
+    var nombre = document.getElementById("in-proy-nombre").value.trim();
+    var ciudad = document.getElementById("in-proy-ciudad").value.trim();
+    var notas = document.getElementById("in-proy-notas").value.trim();
+    if (!nombre || !ciudad) {
+      document.getElementById("in-proy-nombre").style.borderColor = nombre ? "" : "var(--critical)";
+      document.getElementById("in-proy-ciudad").style.borderColor = ciudad ? "" : "var(--critical)";
+      setProyectoFormStatus("Completa el nombre y la ciudad del proyecto.");
+      return;
+    }
+    document.getElementById("in-proy-nombre").style.borderColor = "";
+    document.getElementById("in-proy-ciudad").style.borderColor = "";
+    var payload = { nombre: nombre, ciudad: ciudad, notas: notas };
+    var req = state.editingProyectoId
+      ? api("/api/proyectos/" + state.editingProyectoId, { method: "PUT", body: JSON.stringify(payload) })
+      : api("/api/proyectos", { method: "POST", body: JSON.stringify(payload) });
+    req.then(function () { dlgProyectoForm.close(); return refreshAll(); })
+      .catch(function (err) { setProyectoFormStatus(err.message || "No se pudo guardar."); });
+  });
+
+  /* ---------------- Proyecto: delete ---------------- */
+  var dlgDeleteProyecto = document.getElementById("dlg-delete-proyecto");
+  function openDeleteProyecto(id) {
+    state.deletingProyectoId = id;
+    var p = getProyecto(id);
+    var linkedCount = state.tramites.filter(function (t) { return t.proyectoId === id; }).length;
+    var msgEl = document.getElementById("dlg-delete-proyecto-msg");
+    var confirmBtn = document.getElementById("dlg-delete-proyecto-confirm");
+    if (linkedCount > 0) {
+      msgEl.innerHTML = "No se puede eliminar “<strong>" + escapeHtml(p ? p.nombre : "") + "</strong>”: tiene " + linkedCount + " trámite" + (linkedCount === 1 ? "" : "s") + " asociado" + (linkedCount === 1 ? "" : "s") + ". Reasígnalos o elimínalos primero.";
+      confirmBtn.style.display = "none";
+    } else {
+      msgEl.innerHTML = "¿Eliminar el proyecto “<strong>" + escapeHtml(p ? p.nombre : "") + "</strong>”? Esta acción no se puede deshacer.";
+      confirmBtn.style.display = "";
+    }
+    dlgDeleteProyecto.showModal();
+  }
+  document.getElementById("dlg-delete-proyecto-close").addEventListener("click", function () { dlgDeleteProyecto.close(); });
+  document.getElementById("dlg-delete-proyecto-cancel").addEventListener("click", function () { dlgDeleteProyecto.close(); });
+  document.getElementById("dlg-delete-proyecto-confirm").addEventListener("click", function () {
+    api("/api/proyectos/" + state.deletingProyectoId, { method: "DELETE" })
+      .then(function () { dlgDeleteProyecto.close(); return refreshAll(); })
+      .catch(function (err) { dlgDeleteProyecto.close(); showBanner(err.message || "No se pudo eliminar el proyecto."); });
+  });
+
+  /* ---------------- Trámite: add / edit ---------------- */
+  var dlgForm = document.getElementById("dlg-form");
+  function setFormStatus(msg) {
+    var el = document.getElementById("form-status");
+    el.textContent = msg || "";
+    el.style.visibility = msg ? "visible" : "hidden";
+  }
+  function populateProyectoSelect(currentId) {
+    var el = document.getElementById("in-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Selecciona un proyecto…</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
+    }).join("");
+    if (currentId) el.value = currentId;
+    updateProyectoCiudadHint();
+  }
+  function updateProyectoCiudadHint() {
+    var el = document.getElementById("in-proyecto");
+    var hint = document.getElementById("in-proyecto-ciudad-hint");
+    var p = getProyecto(el.value);
+    hint.textContent = p ? ("Ciudad: " + p.ciudad) : " ";
+  }
+  document.getElementById("in-proyecto").addEventListener("change", updateProyectoCiudadHint);
+
+  function recalcVencimiento() {
+    var valor = Number(document.getElementById("in-tiempo-valor").value);
+    if (!valor || valor <= 0) return;
+    var unidad = document.getElementById("in-tiempo-unidad").value;
+    var inicioStr = document.getElementById("in-inicio").value || new Date().toISOString().slice(0, 10);
+    var base = parseDate(inicioStr) || new Date();
+    var result = addDuration(base, valor, unidad);
+    document.getElementById("in-vencimiento").value = result.toISOString().slice(0, 10);
+  }
+  document.getElementById("in-tiempo-valor").addEventListener("input", recalcVencimiento);
+  document.getElementById("in-tiempo-unidad").addEventListener("change", recalcVencimiento);
+  document.getElementById("in-inicio").addEventListener("change", recalcVencimiento);
+
+  function openForm(id) {
+    state.editingTramiteId = id || null;
+    var it = id ? state.tramites.find(function (x) { return x.id === id; }) : null;
+    document.getElementById("dlg-form-title").textContent = it ? "Editar trámite" : "Nuevo trámite";
+    document.getElementById("in-nombre").value = it ? it.nombre : "";
+    populateProyectoSelect(it ? it.proyectoId : "");
+    document.getElementById("in-presupuesto").value = it && it.presupuesto != null ? it.presupuesto : "";
+    document.getElementById("in-costo-gestion").value = it ? it.costoGestion : "";
+    document.getElementById("in-costo-derechos").value = it ? it.costoDerechos : "";
+    document.getElementById("in-estatus").value = it ? it.estatus : "en_proceso";
+    document.getElementById("in-inicio").value = it ? it.fechaInicio : new Date().toISOString().slice(0, 10);
+    document.getElementById("in-tiempo-valor").value = it && it.tiempoValor ? it.tiempoValor : "";
+    document.getElementById("in-tiempo-unidad").value = it && it.tiempoUnidad ? it.tiempoUnidad : "dias";
+    document.getElementById("in-vencimiento").value = it ? it.fechaVencimiento : "";
+    document.getElementById("in-conclusion-real").value = it ? (it.fechaConclusionReal || "") : "";
+    document.getElementById("in-responsable").value = it ? (it.responsable || "") : "";
+    document.getElementById("in-notas").value = it ? (it.notas || "") : "";
+    document.getElementById("in-incluir-linea").checked = it ? it.incluirLineaTiempo !== false : true;
+    ["in-nombre", "in-proyecto", "in-vencimiento"].forEach(function (fid) { document.getElementById(fid).style.borderColor = ""; });
+    setFormStatus(state.proyectos.length ? "" : "Primero registra un proyecto con el botón “Nuevo proyecto”.");
+    document.getElementById("dlg-form-save").disabled = !state.proyectos.length;
+    var subBlock = document.getElementById("subelementos-block");
+    if (id) {
+      subBlock.style.display = "";
+      document.getElementById("sub-nombre").value = "";
+      document.getElementById("sub-fecha").value = "";
+      document.getElementById("sub-estatus").value = "en_proceso";
+      renderSubelementosList(id);
+    } else {
+      subBlock.style.display = "none";
+    }
+    dlgForm.showModal();
+    document.getElementById("in-nombre").focus();
+  }
+
+  /* ---------------- Subelementos ---------------- */
+  function renderSubelementosList(tramiteId) {
+    var tbody = document.getElementById("subelementos-body");
+    var rows = subelementosForTramite(tramiteId);
+    tbody.innerHTML = rows.length ? rows.map(function (se) {
+      return '<tr data-id="' + se.id + '">' +
+        '<td>' + escapeHtml(se.nombre) + '</td>' +
+        '<td class="cell-date">' + fmtDate(se.fecha) + '</td>' +
+        '<td>' + (ESTATUS_LABEL[se.estatus] || se.estatus) + '</td>' +
+        '<td><label class="checkbox-inline"><input type="checkbox" class="sub-linea-toggle" data-id="' + se.id + '"' + (se.incluirLineaTiempo !== false ? " checked" : "") + '></label></td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger sub-del-btn" data-id="' + se.id + '" aria-label="Eliminar subelemento">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("") : '<tr><td colspan="5" class="loading-row">Aún no hay subelementos.</td></tr>';
+
+    tbody.querySelectorAll(".sub-linea-toggle").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var se = state.subelementos.find(function (x) { return x.id === cb.dataset.id; });
+        if (!se) return;
+        api("/api/subelementos/" + se.id, { method: "PUT", body: JSON.stringify({
+          tramiteId: se.tramiteId, nombre: se.nombre, fecha: se.fecha, estatus: se.estatus, incluirLineaTiempo: cb.checked
+        }) }).then(function () { return refreshAll(); })
+          .then(function () { renderSubelementosList(tramiteId); })
+          .catch(function (err) { showBanner(err.message || "No se pudo actualizar el subelemento."); });
+      });
+    });
+    tbody.querySelectorAll(".sub-del-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/subelementos/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderSubelementosList(tramiteId); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar el subelemento."); });
+      });
+    });
+  }
+
+  document.getElementById("btn-sub-add").addEventListener("click", function () {
+    var nombre = document.getElementById("sub-nombre").value.trim();
+    if (!nombre || !state.editingTramiteId) return;
+    var payload = {
+      tramiteId: state.editingTramiteId, nombre: nombre,
+      fecha: document.getElementById("sub-fecha").value || "",
+      estatus: document.getElementById("sub-estatus").value
+    };
+    api("/api/subelementos", { method: "POST", body: JSON.stringify(payload) })
+      .then(function () { return refreshAll(); })
+      .then(function () {
+        document.getElementById("sub-nombre").value = "";
+        document.getElementById("sub-fecha").value = "";
+        document.getElementById("sub-estatus").value = "en_proceso";
+        renderSubelementosList(state.editingTramiteId);
+      })
+      .catch(function (err) { showBanner(err.message || "No se pudo agregar el subelemento."); });
+  });
+  document.getElementById("btn-add").addEventListener("click", function () { if (state.proyectos.length) openForm(null); });
+  document.getElementById("dlg-form-close").addEventListener("click", function () { dlgForm.close(); });
+  document.getElementById("dlg-form-cancel").addEventListener("click", function () { dlgForm.close(); });
+  document.getElementById("dlg-form-save").addEventListener("click", function () {
+    var nombre = document.getElementById("in-nombre").value.trim();
+    var proyectoId = document.getElementById("in-proyecto").value;
+    var vencimiento = document.getElementById("in-vencimiento").value;
+    if (!nombre || !proyectoId || !vencimiento) {
+      [["in-nombre", nombre], ["in-proyecto", proyectoId], ["in-vencimiento", vencimiento]].forEach(function (pair) {
+        document.getElementById(pair[0]).style.borderColor = pair[1] ? "" : "var(--critical)";
+      });
+      setFormStatus("Completa los campos obligatorios.");
+      return;
+    }
+    var presupuestoVal = document.getElementById("in-presupuesto").value;
+    var tiempoValor = Number(document.getElementById("in-tiempo-valor").value) || null;
+    var payload = {
+      nombre: nombre, proyectoId: proyectoId,
+      presupuesto: presupuestoVal !== "" ? Number(presupuestoVal) : null,
+      costoGestion: Number(document.getElementById("in-costo-gestion").value) || 0,
+      costoDerechos: Number(document.getElementById("in-costo-derechos").value) || 0,
+      estatus: document.getElementById("in-estatus").value,
+      fechaInicio: document.getElementById("in-inicio").value,
+      fechaVencimiento: vencimiento,
+      fechaConclusionReal: document.getElementById("in-conclusion-real").value || "",
+      tiempoValor: tiempoValor,
+      tiempoUnidad: document.getElementById("in-tiempo-unidad").value,
+      responsable: document.getElementById("in-responsable").value.trim(),
+      notas: document.getElementById("in-notas").value.trim(),
+      incluirLineaTiempo: document.getElementById("in-incluir-linea").checked
+    };
+    var saveBtn = document.getElementById("dlg-form-save");
+    saveBtn.disabled = true;
+    var req = state.editingTramiteId
+      ? api("/api/tramites/" + state.editingTramiteId, { method: "PUT", body: JSON.stringify(payload) })
+      : api("/api/tramites", { method: "POST", body: JSON.stringify(payload) });
+    req.then(function () { dlgForm.close(); return refreshAll(); })
+      .catch(function (err) { setFormStatus(err.message || "No se pudo guardar."); })
+      .finally(function () { saveBtn.disabled = false; });
+  });
+
+  /* ---------------- Trámite: delete ---------------- */
+  var dlgDelete = document.getElementById("dlg-delete");
+  function openDelete(id) {
+    state.deletingTramiteId = id;
+    var it = state.tramites.find(function (x) { return x.id === id; });
+    document.getElementById("dlg-delete-name").textContent = it ? it.nombre : "";
+    var pagosCount = pagosForTramites([id]).length;
+    var subCount = subelementosForTramite(id).length;
+    var notas = [];
+    if (pagosCount) notas.push(pagosCount + " pago" + (pagosCount === 1 ? "" : "s"));
+    if (subCount) notas.push(subCount + " subelemento" + (subCount === 1 ? "" : "s"));
+    document.getElementById("dlg-delete-pagos-note").textContent = notas.length
+      ? ("También se eliminarán " + notas.join(" y ") + " asociados a este trámite.")
+      : "";
+    dlgDelete.showModal();
+  }
+  document.getElementById("dlg-delete-close").addEventListener("click", function () { dlgDelete.close(); });
+  document.getElementById("dlg-delete-cancel").addEventListener("click", function () { dlgDelete.close(); });
+  document.getElementById("dlg-delete-confirm").addEventListener("click", function () {
+    api("/api/tramites/" + state.deletingTramiteId, { method: "DELETE" })
+      .then(function () { dlgDelete.close(); return refreshAll(); })
+      .catch(function (err) { dlgDelete.close(); showBanner(err.message || "No se pudo eliminar el trámite."); });
+  });
+
+  /* ---------------- Export ---------------- */
+  var dlgExport = document.getElementById("dlg-export");
+  document.getElementById("btn-export").addEventListener("click", function () {
+    document.getElementById("export-text").value = JSON.stringify({
+      proyectos: state.proyectos, tramites: state.tramites, pagos: state.pagos,
+      subelementos: state.subelementos, hitos: state.hitos
+    }, null, 2);
+    document.getElementById("export-status").style.visibility = "hidden";
+    dlgExport.showModal();
+  });
+  document.getElementById("dlg-export-close").addEventListener("click", function () { dlgExport.close(); });
+  document.getElementById("dlg-export-cancel").addEventListener("click", function () { dlgExport.close(); });
+  document.getElementById("btn-copy-export").addEventListener("click", function () {
+    var ta = document.getElementById("export-text");
+    var status = document.getElementById("export-status");
+    function ok() { status.textContent = "Copiado al portapapeles."; status.className = "status-msg ok"; status.style.visibility = "visible"; }
+    function fail() { status.textContent = "No se pudo copiar automáticamente; selecciona el texto y copia con Ctrl/Cmd+C."; status.className = "status-msg err"; status.style.visibility = "visible"; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(ok, function () {
+        ta.select();
+        try { document.execCommand("copy") ? ok() : fail(); } catch (e) { fail(); }
+      });
+    } else {
+      ta.select();
+      try { document.execCommand("copy") ? ok() : fail(); } catch (e) { fail(); }
+    }
+  });
+  document.getElementById("btn-download-export").addEventListener("click", function () {
+    var blob = new Blob([document.getElementById("export-text").value], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = "tramites-craft-" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  });
+
+  /* ---------------- Import (normaliza cualquier formato exportado y lo manda al servidor) ---------------- */
+  var dlgImport = document.getElementById("dlg-import");
+
+  function sanitizeTramiteFields(t) {
+    var costoGestion = t.costoGestion != null ? Number(t.costoGestion) || 0 : Number(t.costo) || 0;
+    var costoDerechos = t.costoDerechos != null ? Number(t.costoDerechos) || 0 : 0;
+    return {
+      costoGestion: costoGestion,
+      costoDerechos: costoDerechos,
+      presupuesto: (t.presupuesto !== undefined && t.presupuesto !== null && t.presupuesto !== "") ? Number(t.presupuesto) : null,
+      fechaConclusionReal: t.fechaConclusionReal || "",
+      tiempoValor: t.tiempoValor ? Number(t.tiempoValor) : null,
+      tiempoUnidad: DURATION_UNITS.indexOf(t.tiempoUnidad) !== -1 ? t.tiempoUnidad : "dias"
+    };
+  }
+  function sanitizePagoRecord(pg, tramiteIdMap) {
+    if (!pg) return null;
+    var newTramiteId = tramiteIdMap[pg.tramiteId];
+    if (!newTramiteId) return null;
+    var tipo = PAGO_TIPOS.indexOf(pg.tipo) !== -1 ? pg.tipo : null;
+    if (!tipo) return null;
+    var monto = Number(pg.monto);
+    if (!isFinite(monto) || monto <= 0) return null;
+    return { id: uid(), tramiteId: newTramiteId, tipo: tipo, monto: monto, fecha: pg.fecha || "", notas: (pg.notas || "").toString() };
+  }
+  function sanitizeSubelementoRecord(se, tramiteIdMap) {
+    if (!se || !se.nombre) return null;
+    var newTramiteId = tramiteIdMap[se.tramiteId];
+    if (!newTramiteId) return null;
+    return {
+      id: uid(), tramiteId: newTramiteId, nombre: String(se.nombre),
+      fecha: se.fecha || "", estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(se.estatus) !== -1 ? se.estatus : "en_proceso",
+      incluirLineaTiempo: se.incluirLineaTiempo === false ? false : true
+    };
+  }
+  function sanitizeHitoRecord(h, idMap) {
+    if (!h || !h.nombre) return null;
+    var newProyectoId = idMap[h.proyectoId];
+    if (!newProyectoId) return null;
+    return {
+      id: uid(), proyectoId: newProyectoId, nombre: String(h.nombre),
+      area: HITO_AREAS.indexOf(h.area) !== -1 ? h.area : "otro",
+      fecha: h.fecha || "", estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(h.estatus) !== -1 ? h.estatus : "en_proceso",
+      notas: (h.notas || "").toString(),
+      incluirLineaTiempo: h.incluirLineaTiempo === false ? false : true
+    };
+  }
+  function normalizePayload(parsed) {
+    if (Array.isArray(parsed)) {
+      var proyMap = {}, proyectos = [], tramites = [];
+      parsed.forEach(function (it) {
+        if (!it || !it.nombre || !it.ciudad || !it.proyecto || !it.fechaVencimiento) return;
+        var key = (String(it.proyecto) + "__" + String(it.ciudad)).toLowerCase();
+        var pid = proyMap[key];
+        if (!pid) { pid = uid(); proyMap[key] = pid; proyectos.push({ id: pid, nombre: String(it.proyecto), ciudad: String(it.ciudad), notas: "" }); }
+        var extra = sanitizeTramiteFields(it);
+        tramites.push(Object.assign({
+          id: uid(), proyectoId: pid, nombre: String(it.nombre),
+          estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(it.estatus) !== -1 ? it.estatus : "en_proceso",
+          fechaInicio: it.fechaInicio || "", fechaVencimiento: it.fechaVencimiento,
+          responsable: it.responsable || "", notas: it.notas || ""
+        }, extra));
+      });
+      return { proyectos: proyectos, tramites: tramites, pagos: [], subelementos: [], hitos: [] };
+    }
+    if (parsed && Array.isArray(parsed.proyectos) && Array.isArray(parsed.tramites)) {
+      var idMap = {};
+      var proyectos2 = parsed.proyectos.filter(function (p) { return p && p.nombre && p.ciudad; }).map(function (p) {
+        var newId = uid(); idMap[p.id] = newId;
+        return { id: newId, nombre: String(p.nombre), ciudad: String(p.ciudad), notas: p.notas || "" };
+      });
+      var tramiteIdMap = {};
+      var tramites2 = parsed.tramites.filter(function (t) { return t && t.nombre && t.fechaVencimiento && idMap[t.proyectoId]; }).map(function (t) {
+        var newId = uid();
+        if (t.id != null) tramiteIdMap[t.id] = newId;
+        var extra = sanitizeTramiteFields(t);
+        return Object.assign({
+          id: newId, proyectoId: idMap[t.proyectoId], nombre: String(t.nombre),
+          estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(t.estatus) !== -1 ? t.estatus : "en_proceso",
+          fechaInicio: t.fechaInicio || "", fechaVencimiento: t.fechaVencimiento,
+          responsable: t.responsable || "", notas: t.notas || "",
+          incluirLineaTiempo: t.incluirLineaTiempo === false ? false : true
+        }, extra);
+      });
+      var pagos2 = Array.isArray(parsed.pagos) ? parsed.pagos.map(function (pg) { return sanitizePagoRecord(pg, tramiteIdMap); }).filter(Boolean) : [];
+      var subelementos2 = Array.isArray(parsed.subelementos) ? parsed.subelementos.map(function (se) { return sanitizeSubelementoRecord(se, tramiteIdMap); }).filter(Boolean) : [];
+      var hitos2 = Array.isArray(parsed.hitos) ? parsed.hitos.map(function (h) { return sanitizeHitoRecord(h, idMap); }).filter(Boolean) : [];
+      return { proyectos: proyectos2, tramites: tramites2, pagos: pagos2, subelementos: subelementos2, hitos: hitos2 };
+    }
+    return null;
+  }
+
+  document.getElementById("btn-import").addEventListener("click", function () {
+    document.getElementById("import-text").value = "";
+    document.getElementById("import-file").value = "";
+    document.getElementById("import-replace").checked = false;
+    var status = document.getElementById("import-status");
+    status.style.visibility = "hidden";
+    dlgImport.showModal();
+  });
+  document.getElementById("dlg-import-close").addEventListener("click", function () { dlgImport.close(); });
+  document.getElementById("dlg-import-cancel").addEventListener("click", function () { dlgImport.close(); });
+  document.getElementById("import-file").addEventListener("change", function (e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () { document.getElementById("import-text").value = reader.result; };
+    reader.readAsText(file);
+  });
+  document.getElementById("btn-do-import").addEventListener("click", function () {
+    var status = document.getElementById("import-status");
+    var raw = document.getElementById("import-text").value.trim();
+    status.style.visibility = "visible";
+    if (!raw) { status.textContent = "Pega o selecciona un archivo JSON primero."; status.className = "status-msg err"; return; }
+    var parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { status.textContent = "El texto no es JSON válido."; status.className = "status-msg err"; return; }
+    var normalized = normalizePayload(parsed);
+    if (!normalized || (!normalized.proyectos.length && !normalized.tramites.length)) {
+      status.textContent = "No se encontraron proyectos ni trámites válidos en el JSON.";
+      status.className = "status-msg err";
+      return;
+    }
+    var mode = document.getElementById("import-replace").checked ? "replace" : "merge";
+    var btn = document.getElementById("btn-do-import");
+    btn.disabled = true;
+    api("/api/import", { method: "POST", body: JSON.stringify(Object.assign({ mode: mode }, normalized)) }).then(function (result) {
+      status.textContent = "Se importaron " + result.tramites + " trámite" + (result.tramites === 1 ? "" : "s") +
+        ", " + result.proyectos + " proyecto" + (result.proyectos === 1 ? "" : "s") +
+        ", " + result.pagos + " pago" + (result.pagos === 1 ? "" : "s") +
+        ", " + (result.subelementos || 0) + " subelemento" + (result.subelementos === 1 ? "" : "s") +
+        " y " + (result.hitos || 0) + " hito" + (result.hitos === 1 ? "" : "s") + ".";
+      status.className = "status-msg ok";
+      return refreshAll();
+    }).then(function () {
+      setTimeout(function () { dlgImport.close(); }, 1100);
+    }).catch(function (err) {
+      status.textContent = err.message || "No se pudo importar.";
+      status.className = "status-msg err";
+    }).finally(function () { btn.disabled = false; });
+  });
+
+  /* ---------------- Pagos: captura y estado de cuenta ---------------- */
+  var dlgPagos = document.getElementById("dlg-pagos");
+
+  function populatePagoProyectoSelect() {
+    var el = document.getElementById("pago-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Selecciona un proyecto…</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
+    }).join("");
+  }
+  function populatePagoTramiteSelect(proyectoId) {
+    var el = document.getElementById("pago-tramite");
+    var list = state.tramites.filter(function (t) { return t.proyectoId === proyectoId; })
+      .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+    if (!proyectoId) {
+      el.innerHTML = '<option value="">Selecciona un proyecto primero…</option>';
+      el.disabled = true;
+      return;
+    }
+    el.innerHTML = list.length
+      ? ('<option value="">Selecciona un trámite…</option>' + list.map(function (t) {
+          return '<option value="' + t.id + '">' + escapeHtml(t.nombre) + '</option>';
+        }).join(""))
+      : '<option value="">(este proyecto no tiene trámites)</option>';
+    el.disabled = !list.length;
+  }
+  document.getElementById("pago-proyecto").addEventListener("change", function (e) { populatePagoTramiteSelect(e.target.value); });
+
+  function populatePagoFiltroProyecto(preselectId) {
+    var el = document.getElementById("pago-filtro-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Todos los proyectos</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + '</option>';
+    }).join("");
+    if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
+  }
+
+  function renderPagosLedger() {
+    var proyectoFiltro = document.getElementById("pago-filtro-proyecto").value;
+    var rows = state.pagos.slice();
+    if (proyectoFiltro) {
+      var idsInProyecto = state.tramites.filter(function (t) { return t.proyectoId === proyectoFiltro; }).map(function (t) { return t.id; });
+      rows = rows.filter(function (pg) { return idsInProyecto.indexOf(pg.tramiteId) !== -1; });
+    }
+    rows.sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
+
+    var totalGestion = 0, totalDerechos = 0;
+    rows.forEach(function (pg) { if (pg.tipo === "derechos") totalDerechos += Number(pg.monto); else totalGestion += Number(pg.monto); });
+    document.getElementById("pagos-ledger-summary").innerHTML = rows.length
+      ? ("Total registrado: <strong>" + fmtMoney.format(totalGestion + totalDerechos) + "</strong> · Gestión " + fmtMoney.format(totalGestion) + " · Derechos " + fmtMoney.format(totalDerechos))
+      : "";
+
+    var tbody = document.getElementById("pagos-ledger-body");
+    document.getElementById("pagos-ledger-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (pg) {
+      var t = getTramite(pg.tramiteId);
+      return '<tr>' +
+        '<td class="cell-date">' + fmtDate(pg.fecha) + '</td>' +
+        '<td>' + escapeHtml(t ? t.nombre : "(trámite eliminado)") + (pg.notas ? '<span class="sub-note">' + escapeHtml(pg.notas) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(t ? proyectoNombre(t) : "—") + '</td>' +
+        '<td>' + pagoTipoLabel(pg.tipo) + '</td>' +
+        '<td class="cell-cost">' + fmtMoney.format(Number(pg.monto)) + '</td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-pago-btn" data-id="' + pg.id + '" aria-label="Eliminar pago">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("");
+    document.querySelectorAll(".del-pago-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/pagos/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderPagosLedger(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar el pago."); });
+      });
+    });
+  }
+
+  document.getElementById("pago-filtro-proyecto").addEventListener("change", renderPagosLedger);
+
+  document.getElementById("btn-pagos").addEventListener("click", function () {
+    populatePagoProyectoSelect();
+    populatePagoTramiteSelect("");
+    document.getElementById("pago-tipo").value = "gestion";
+    document.getElementById("pago-monto").value = "";
+    document.getElementById("pago-fecha").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("pago-notas").value = "";
+    document.getElementById("pago-form-status").style.visibility = "hidden";
+    populatePagoFiltroProyecto(state.filters.proyectoId);
+    renderPagosLedger();
+    dlgPagos.showModal();
+  });
+  document.getElementById("dlg-pagos-close").addEventListener("click", function () { dlgPagos.close(); });
+  document.getElementById("dlg-pagos-done").addEventListener("click", function () { dlgPagos.close(); });
+
+  document.getElementById("btn-pago-add").addEventListener("click", function () {
+    var status = document.getElementById("pago-form-status");
+    var proyectoId = document.getElementById("pago-proyecto").value;
+    var tramiteId = document.getElementById("pago-tramite").value;
+    var tipo = document.getElementById("pago-tipo").value;
+    var montoVal = document.getElementById("pago-monto").value;
+    var fecha = document.getElementById("pago-fecha").value;
+    var notas = document.getElementById("pago-notas").value.trim();
+    status.style.visibility = "visible";
+    if (!proyectoId || !tramiteId || !montoVal || Number(montoVal) <= 0 || !fecha) {
+      status.textContent = "Completa proyecto, trámite, monto y fecha.";
+      status.className = "status-msg err";
+      return;
+    }
+    api("/api/pagos", { method: "POST", body: JSON.stringify({ tramiteId: tramiteId, tipo: PAGO_TIPOS.indexOf(tipo) !== -1 ? tipo : "gestion", monto: Number(montoVal), fecha: fecha, notas: notas }) })
+      .then(function () {
+        status.textContent = "Pago registrado.";
+        status.className = "status-msg ok";
+        document.getElementById("pago-monto").value = "";
+        document.getElementById("pago-notas").value = "";
+        return refreshAll();
+      })
+      .then(function () { renderPagosLedger(); })
+      .catch(function (err) { status.textContent = err.message || "No se pudo registrar el pago."; status.className = "status-msg err"; });
+  });
+
+  /* ---------------- Hitos: otras áreas ---------------- */
+  var dlgHitos = document.getElementById("dlg-hitos");
+
+  function populateHitoProyectoSelect() {
+    var el = document.getElementById("hito-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Selecciona un proyecto…</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
+    }).join("");
+  }
+  function populateHitoFiltroProyecto(preselectId) {
+    var el = document.getElementById("hito-filtro-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Todos los proyectos</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + '</option>';
+    }).join("");
+    if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
+  }
+
+  function renderHitosTable() {
+    var proyectoFiltro = document.getElementById("hito-filtro-proyecto").value;
+    var rows = state.hitos.slice();
+    if (proyectoFiltro) rows = rows.filter(function (h) { return h.proyectoId === proyectoFiltro; });
+    rows.sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
+
+    var tbody = document.getElementById("hitos-body");
+    document.getElementById("hitos-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (h) {
+      var st = computeState(h);
+      return '<tr>' +
+        '<td class="cell-date">' + fmtDate(h.fecha) + '</td>' +
+        '<td>' + escapeHtml(h.nombre) + (h.notas ? '<span class="sub-note">' + escapeHtml(h.notas) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(proyectoNombre(h)) + '</td>' +
+        '<td>' + (AREA_LABELS[h.area] || "Otro") + '</td>' +
+        '<td><span class="pill st-' + st + '"><span class="dot st-' + st + '"></span>' + STATE_LABEL[st] + '</span></td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-hito-btn" data-id="' + h.id + '" aria-label="Eliminar hito">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".del-hito-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/hitos/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderHitosTable(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar el hito."); });
+      });
+    });
+  }
+
+  document.getElementById("hito-filtro-proyecto").addEventListener("change", renderHitosTable);
+
+  document.getElementById("btn-hitos").addEventListener("click", function () {
+    populateHitoProyectoSelect();
+    document.getElementById("hito-area").value = "comercial";
+    document.getElementById("hito-nombre").value = "";
+    document.getElementById("hito-fecha").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("hito-estatus").value = "en_proceso";
+    document.getElementById("hito-notas").value = "";
+    document.getElementById("hito-incluir-linea").checked = true;
+    document.getElementById("hito-form-status").style.visibility = "hidden";
+    populateHitoFiltroProyecto(state.filters.proyectoId);
+    renderHitosTable();
+    dlgHitos.showModal();
+  });
+  document.getElementById("dlg-hitos-close").addEventListener("click", function () { dlgHitos.close(); });
+  document.getElementById("dlg-hitos-done").addEventListener("click", function () { dlgHitos.close(); });
+
+  document.getElementById("btn-hito-add").addEventListener("click", function () {
+    var status = document.getElementById("hito-form-status");
+    var proyectoId = document.getElementById("hito-proyecto").value;
+    var nombre = document.getElementById("hito-nombre").value.trim();
+    status.style.visibility = "visible";
+    if (!proyectoId || !nombre) {
+      status.textContent = "Completa proyecto y nombre del hito.";
+      status.className = "status-msg err";
+      return;
+    }
+    var payload = {
+      proyectoId: proyectoId, nombre: nombre,
+      area: document.getElementById("hito-area").value,
+      fecha: document.getElementById("hito-fecha").value || "",
+      estatus: document.getElementById("hito-estatus").value,
+      notas: document.getElementById("hito-notas").value.trim(),
+      incluirLineaTiempo: document.getElementById("hito-incluir-linea").checked
+    };
+    api("/api/hitos", { method: "POST", body: JSON.stringify(payload) })
+      .then(function () {
+        status.textContent = "Hito registrado.";
+        status.className = "status-msg ok";
+        document.getElementById("hito-nombre").value = "";
+        document.getElementById("hito-notas").value = "";
+        return refreshAll();
+      })
+      .then(function () { renderHitosTable(); })
+      .catch(function (err) { status.textContent = err.message || "No se pudo registrar el hito."; status.className = "status-msg err"; });
+  });
+
+  /* ---------------- Arranque ---------------- */
+  function boot() {
+    api("/api/session").then(function (s) {
+      state.role = s.role;
+      document.body.classList.toggle("role-viewer", state.role === "viewer");
+      document.getElementById("readonly-banner").classList.toggle("show", state.role === "viewer");
+      return refreshAll();
+    }).catch(function () { window.location.href = "/login"; });
+  }
+  boot();
+})();
+</script>
+
+</body>
+</html>

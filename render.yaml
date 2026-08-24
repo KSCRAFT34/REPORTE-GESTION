@@ -1,0 +1,26 @@
+databases:
+  - name: tramites-craft-db
+    plan: free
+    databaseName: tramites_craft
+    user: tramites_craft
+
+services:
+  - type: web
+    name: tramites-craft
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tramites-craft-db
+          property: connectionString
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: EDIT_PASSWORD
+        sync: false
+      - key: VIEW_PASSWORD
+        sync: false
+      - key: NODE_ENV
+        value: production
