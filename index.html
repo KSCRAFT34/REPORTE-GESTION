@@ -10,6 +10,25 @@
 </head>
 <body>
 
+<div class="app-shell">
+  <nav class="sidenav">
+    <div class="sidenav-brand">CRAFT</div>
+    <button type="button" class="sidenav-item active" id="nav-tramites">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h6"/><path d="M4 4h16v16H4z"/></svg>
+      Trámites
+    </button>
+    <button type="button" class="sidenav-item" id="nav-catalogos-toggle" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7l-2-2H5a2 2 0 0 0-2 2Z"/></svg>
+      Catálogos
+      <svg class="sidenav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="sidenav-sub" id="nav-catalogos-sub" style="display:none">
+      <button type="button" class="sidenav-subitem" id="cat-nav-proyectos">Proyectos</button>
+      <button type="button" class="sidenav-subitem" id="cat-nav-tramites">Trámites</button>
+      <button type="button" class="sidenav-subitem" id="cat-nav-proveedores">Proveedores</button>
+    </div>
+  </nav>
+  <div class="app-main">
 <div class="wrap">
   <div class="header">
     <div class="header-title">
@@ -237,6 +256,8 @@
 
   <footer class="note">Los datos se guardan en el servidor y los ve todo tu equipo. Usa “Exportar” de vez en cuando para tener un respaldo.</footer>
 </div>
+  </div>
+</div>
 
 <!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
@@ -255,8 +276,12 @@
       <input type="text" id="in-proy-nombre" placeholder="p. ej. Torre Reforma Norte">
     </div>
     <div class="field" style="margin-bottom:12px">
-      <label for="in-proy-ciudad">Ciudad <span class="req">*</span></label>
-      <input type="text" id="in-proy-ciudad" list="dl-ciudades" placeholder="p. ej. Guadalajara">
+      <label for="in-proy-ciudad">Ciudad</label>
+      <input type="text" id="in-proy-ciudad" list="dl-ciudades" placeholder="Opcional — puedes completarla después">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label for="in-proy-direccion">Dirección</label>
+      <input type="text" id="in-proy-direccion" placeholder="Opcional — puedes completarla después">
     </div>
     <div class="field">
       <label for="in-proy-notas">Notas (cliente, referencia, etc.)</label>
@@ -417,6 +442,7 @@
 
 <datalist id="dl-ciudades"></datalist>
 <datalist id="dl-tipos"></datalist>
+<datalist id="dl-conceptos"></datalist>
 <datalist id="dl-responsables"></datalist>
 
 <!-- Trámite: Delete confirm dialog -->
@@ -513,16 +539,8 @@
         </div>
         <div class="field">
           <label for="pago-concepto">Pagado a</label>
-          <select id="pago-concepto">
-            <option value="">Sin especificar</option>
-            <option value="Gestor">Gestor</option>
-            <option value="Firma de DRO">Firma de DRO</option>
-            <option value="__otro__">Otro…</option>
-          </select>
-        </div>
-        <div class="field" id="pago-concepto-otro-field" style="display:none">
-          <label for="pago-concepto-otro">¿A quién?</label>
-          <input type="text" id="pago-concepto-otro" placeholder="p. ej. Notario">
+          <input type="text" id="pago-concepto" list="dl-conceptos" placeholder="p. ej. Gestor, Anticipo Gestor, Firma de DRO…">
+          <span class="field-hint">Escribe libremente — no hace falta pedirme que agregue opciones nuevas.</span>
         </div>
         <div class="field">
           <label for="pago-monto">Monto pagado (MXN) <span class="req">*</span></label>
@@ -658,6 +676,136 @@
   </div>
 </dialog>
 
+<!-- Catálogo: Trámites (lista maestra, nombre + dependencia + ciudad) -->
+<dialog id="dlg-catalogo-tramites" data-size="lg">
+  <div class="dlg-head">
+    <h2>Catálogo de trámites</h2>
+    <button type="button" class="icon-btn" id="dlg-catalogo-tramites-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Lista maestra de trámites (varían por ciudad). Regístralos aquí una vez y después, al dar de alta un trámite real en un proyecto, lo eliges de esta lista en vez de escribirlo de cero.</p>
+    <div class="requires-edit">
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Agregar trámite al catálogo</div>
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="field span-2">
+          <label for="cat-tram-nombre">Nombre <span class="req">*</span></label>
+          <input type="text" id="cat-tram-nombre" placeholder="p. ej. Licencia de Uso de Suelo">
+        </div>
+        <div class="field">
+          <label for="cat-tram-dependencia">Dependencia</label>
+          <input type="text" id="cat-tram-dependencia" placeholder="Opcional — ante quién se tramita">
+        </div>
+        <div class="field">
+          <label for="cat-tram-ciudad">Ciudad</label>
+          <input type="text" id="cat-tram-ciudad" list="dl-ciudades" placeholder="Opcional">
+        </div>
+      </div>
+      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+        <div class="status-msg" id="cat-tram-status" style="visibility:hidden;margin:0"></div>
+        <button type="button" class="btn btn-primary" id="btn-cat-tram-add">Agregar al catálogo</button>
+      </div>
+    </div>
+
+    <div class="form-section-label">Trámites en el catálogo</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Dependencia</th>
+            <th>Ciudad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cat-tram-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="cat-tram-empty" style="display:none">
+      <div>Aún no hay trámites en el catálogo. Usa el formulario de arriba para capturar el primero.</div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-catalogo-tramites-done">Cerrar</button>
+  </div>
+</dialog>
+
+<!-- Catálogo: Proveedores (gestores, DRO, etc.) -->
+<dialog id="dlg-proveedores" data-size="lg">
+  <div class="dlg-head">
+    <h2>Proveedores</h2>
+    <button type="button" class="icon-btn" id="dlg-proveedores-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Directorio de proveedores (gestores, DRO, etc.), pueden variar por ciudad. Puedes registrar solo el nombre y completar el resto después.</p>
+    <div class="requires-edit">
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Agregar proveedor</div>
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="field">
+          <label for="prov-nombre">Nombre <span class="req">*</span></label>
+          <input type="text" id="prov-nombre" placeholder="p. ej. Juan Pérez">
+        </div>
+        <div class="field">
+          <label for="prov-tipo">Tipo</label>
+          <input type="text" id="prov-tipo" list="dl-prov-tipos" placeholder="p. ej. Gestor, DRO…">
+        </div>
+        <div class="field">
+          <label for="prov-ciudad">Ciudad</label>
+          <input type="text" id="prov-ciudad" list="dl-ciudades" placeholder="Opcional">
+        </div>
+        <div class="field">
+          <label for="prov-correo">Correo</label>
+          <input type="email" id="prov-correo" placeholder="Opcional">
+        </div>
+        <div class="field">
+          <label for="prov-telefono">Teléfono</label>
+          <input type="text" id="prov-telefono" placeholder="Opcional">
+        </div>
+        <div class="field">
+          <label for="prov-cuenta">Cuenta bancaria</label>
+          <input type="text" id="prov-cuenta" placeholder="Opcional">
+        </div>
+      </div>
+      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+        <div class="status-msg" id="prov-status" style="visibility:hidden;margin:0"></div>
+        <button type="button" class="btn btn-primary" id="btn-prov-add">Agregar proveedor</button>
+      </div>
+    </div>
+
+    <div class="form-section-label">Proveedores registrados</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Ciudad</th>
+            <th>Correo</th>
+            <th>Teléfono</th>
+            <th>Cuenta bancaria</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="prov-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="prov-empty" style="display:none">
+      <div>Aún no hay proveedores registrados. Usa el formulario de arriba para capturar el primero.</div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-proveedores-done">Cerrar</button>
+  </div>
+</dialog>
+<datalist id="dl-prov-tipos">
+  <option value="Gestor">
+  <option value="Anticipo Gestor">
+  <option value="Firma de DRO">
+</datalist>
+
 <script>
 (function () {
   "use strict";
@@ -678,6 +826,8 @@
     pagos: [],
     subelementos: [],
     hitos: [],
+    catalogoTramites: [],
+    proveedores: [],
     filters: {
       search: "", ciudad: "", proyectoId: "", estado: "",
       areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
@@ -777,6 +927,8 @@
       state.pagos = data.pagos;
       state.subelementos = data.subelementos || [];
       state.hitos = data.hitos || [];
+      state.catalogoTramites = data.catalogoTramites || [];
+      state.proveedores = data.proveedores || [];
       hideBanner();
       renderAll();
     }).catch(function (err) {
@@ -817,6 +969,13 @@
     arr.forEach(function (it) { if (it[field]) set[it[field]] = true; });
     return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, "es"); });
   }
+  function uniqueMerge() {
+    var set = {};
+    Array.prototype.slice.call(arguments).forEach(function (list) {
+      (list || []).forEach(function (v) { if (v) set[v] = true; });
+    });
+    return Object.keys(set).sort(function (a, b) { return a.localeCompare(b, "es"); });
+  }
 
   function escapeAttr(s) { return String(s).replace(/"/g, "&quot;"); }
   function escapeHtml(s) {
@@ -854,8 +1013,13 @@
     fillSelect("f-ciudad", uniqueCiudades(), "Todas");
     fillProyectoFilterSelect();
     fillDatalist("dl-ciudades", uniqueCiudades());
-    fillDatalist("dl-tipos", uniqueFrom(state.tramites, "nombre"));
+    fillDatalist("dl-tipos", uniqueMerge(uniqueFrom(state.tramites, "nombre"), state.catalogoTramites.map(function (c) { return c.nombre; })));
     fillDatalist("dl-responsables", uniqueFrom(state.tramites, "responsable"));
+    fillDatalist("dl-conceptos", uniqueMerge(
+      ["Gestor", "Anticipo Gestor", "Firma de DRO"],
+      state.proveedores.map(function (p) { return p.nombre; }),
+      uniqueFrom(state.pagos, "concepto")
+    ));
   }
 
   function getFilteredTramites() {
@@ -909,7 +1073,7 @@
       return '<tr>' +
         '<td class="cell-tramite"><span class="t-name">' + escapeHtml(p.nombre) + '</span>' +
           (p.notas ? '<span class="t-type">' + escapeHtml(p.notas) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(p.ciudad) + '</td>' +
+        '<td>' + (p.ciudad ? escapeHtml(p.ciudad) : '<span style="color:var(--text-secondary)">—</span>') + '</td>' +
         '<td>' + linked.length + '</td>' +
         '<td class="cell-cost">' + fmtMoney.format(totalCost) + '</td>' +
         '<td class="cell-date">' + nextDue + '</td>' +
@@ -1289,7 +1453,8 @@
     var p = id ? getProyecto(id) : null;
     document.getElementById("dlg-proyecto-title").textContent = p ? "Editar proyecto" : "Nuevo proyecto";
     document.getElementById("in-proy-nombre").value = p ? p.nombre : "";
-    document.getElementById("in-proy-ciudad").value = p ? p.ciudad : "";
+    document.getElementById("in-proy-ciudad").value = p ? (p.ciudad || "") : "";
+    document.getElementById("in-proy-direccion").value = p ? (p.direccion || "") : "";
     document.getElementById("in-proy-notas").value = p ? (p.notas || "") : "";
     setProyectoFormStatus("");
     fillDatalist("dl-ciudades", uniqueCiudades());
@@ -1303,16 +1468,15 @@
   document.getElementById("dlg-proyecto-save").addEventListener("click", function () {
     var nombre = document.getElementById("in-proy-nombre").value.trim();
     var ciudad = document.getElementById("in-proy-ciudad").value.trim();
+    var direccion = document.getElementById("in-proy-direccion").value.trim();
     var notas = document.getElementById("in-proy-notas").value.trim();
-    if (!nombre || !ciudad) {
-      document.getElementById("in-proy-nombre").style.borderColor = nombre ? "" : "var(--critical)";
-      document.getElementById("in-proy-ciudad").style.borderColor = ciudad ? "" : "var(--critical)";
-      setProyectoFormStatus("Completa el nombre y la ciudad del proyecto.");
+    if (!nombre) {
+      document.getElementById("in-proy-nombre").style.borderColor = "var(--critical)";
+      setProyectoFormStatus("Completa al menos el nombre del proyecto — la ciudad y dirección las puedes agregar después.");
       return;
     }
     document.getElementById("in-proy-nombre").style.borderColor = "";
-    document.getElementById("in-proy-ciudad").style.borderColor = "";
-    var payload = { nombre: nombre, ciudad: ciudad, notas: notas };
+    var payload = { nombre: nombre, ciudad: ciudad, direccion: direccion, notas: notas };
     var req = state.editingProyectoId
       ? api("/api/proyectos/" + state.editingProyectoId, { method: "PUT", body: JSON.stringify(payload) })
       : api("/api/proyectos", { method: "POST", body: JSON.stringify(payload) });
@@ -1542,7 +1706,8 @@
   document.getElementById("btn-export").addEventListener("click", function () {
     document.getElementById("export-text").value = JSON.stringify({
       proyectos: state.proyectos, tramites: state.tramites, pagos: state.pagos,
-      subelementos: state.subelementos, hitos: state.hitos
+      subelementos: state.subelementos, hitos: state.hitos,
+      catalogoTramites: state.catalogoTramites, proveedores: state.proveedores
     }, null, 2);
     document.getElementById("export-status").style.visibility = "hidden";
     dlgExport.showModal();
@@ -1754,13 +1919,8 @@
   }
   document.getElementById("pago-proyecto").addEventListener("change", function (e) { populatePagoTramiteSelect(e.target.value); });
 
-  document.getElementById("pago-concepto").addEventListener("change", function (e) {
-    document.getElementById("pago-concepto-otro-field").style.display = e.target.value === "__otro__" ? "" : "none";
-  });
   function pagoConceptoValue() {
-    var sel = document.getElementById("pago-concepto").value;
-    if (sel === "__otro__") return document.getElementById("pago-concepto-otro").value.trim();
-    return sel;
+    return document.getElementById("pago-concepto").value.trim();
   }
 
   function populatePagoFiltroProyecto(preselectId) {
@@ -1832,8 +1992,6 @@
     document.getElementById("pago-fecha").value = new Date().toISOString().slice(0, 10);
     document.getElementById("pago-notas").value = "";
     document.getElementById("pago-concepto").value = "";
-    document.getElementById("pago-concepto-otro").value = "";
-    document.getElementById("pago-concepto-otro-field").style.display = "none";
     document.getElementById("pago-form-status").style.visibility = "hidden";
     populatePagoFiltroProyecto(state.filters.proyectoId);
     renderPagosLedger();
@@ -1971,6 +2129,158 @@
       })
       .then(function () { renderHitosTable(); })
       .catch(function (err) { status.textContent = err.message || "No se pudo registrar el hito."; status.className = "status-msg err"; });
+  });
+
+  /* ---------------- Menú lateral: Catálogos ---------------- */
+  document.getElementById("nav-catalogos-toggle").addEventListener("click", function () {
+    var sub = document.getElementById("nav-catalogos-sub");
+    var expanded = sub.style.display !== "none";
+    sub.style.display = expanded ? "none" : "";
+    this.setAttribute("aria-expanded", expanded ? "false" : "true");
+  });
+  document.getElementById("nav-tramites").addEventListener("click", function () {
+    document.getElementById("dlg-catalogo-tramites").close();
+    document.getElementById("dlg-proveedores").close();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  document.getElementById("cat-nav-proyectos").addEventListener("click", function () { openProyectoForm(null); });
+  document.getElementById("cat-nav-tramites").addEventListener("click", function () { openCatalogoTramites(); });
+  document.getElementById("cat-nav-proveedores").addEventListener("click", function () { openProveedores(); });
+
+  /* ---------------- Catálogo de trámites (lista maestra) ---------------- */
+  var dlgCatalogoTramites = document.getElementById("dlg-catalogo-tramites");
+  function openCatalogoTramites() {
+    document.getElementById("cat-tram-nombre").value = "";
+    document.getElementById("cat-tram-dependencia").value = "";
+    document.getElementById("cat-tram-ciudad").value = "";
+    document.getElementById("cat-tram-status").style.visibility = "hidden";
+    renderCatalogoTramitesTable();
+    dlgCatalogoTramites.showModal();
+  }
+  function renderCatalogoTramitesTable() {
+    var rows = state.catalogoTramites.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+    var tbody = document.getElementById("cat-tram-body");
+    document.getElementById("cat-tram-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (c) {
+      return '<tr>' +
+        '<td>' + escapeHtml(c.nombre) + '</td>' +
+        '<td>' + (c.dependencia ? escapeHtml(c.dependencia) : '—') + '</td>' +
+        '<td>' + (c.ciudad ? escapeHtml(c.ciudad) : '—') + '</td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-cat-tram-btn" data-id="' + c.id + '" aria-label="Eliminar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".del-cat-tram-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/catalogo-tramites/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderCatalogoTramitesTable(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar."); });
+      });
+    });
+  }
+  document.getElementById("dlg-catalogo-tramites-close").addEventListener("click", function () { dlgCatalogoTramites.close(); });
+  document.getElementById("dlg-catalogo-tramites-done").addEventListener("click", function () { dlgCatalogoTramites.close(); });
+  document.getElementById("btn-cat-tram-add").addEventListener("click", function () {
+    var status = document.getElementById("cat-tram-status");
+    var nombre = document.getElementById("cat-tram-nombre").value.trim();
+    status.style.visibility = "visible";
+    if (!nombre) {
+      status.textContent = "Completa al menos el nombre del trámite.";
+      status.className = "status-msg err";
+      return;
+    }
+    var payload = {
+      nombre: nombre,
+      dependencia: document.getElementById("cat-tram-dependencia").value.trim(),
+      ciudad: document.getElementById("cat-tram-ciudad").value.trim()
+    };
+    api("/api/catalogo-tramites", { method: "POST", body: JSON.stringify(payload) })
+      .then(function () {
+        status.textContent = "Agregado al catálogo.";
+        status.className = "status-msg ok";
+        document.getElementById("cat-tram-nombre").value = "";
+        document.getElementById("cat-tram-dependencia").value = "";
+        document.getElementById("cat-tram-ciudad").value = "";
+        return refreshAll();
+      })
+      .then(function () { renderCatalogoTramitesTable(); })
+      .catch(function (err) { status.textContent = err.message || "No se pudo guardar."; status.className = "status-msg err"; });
+  });
+
+  /* ---------------- Proveedores ---------------- */
+  var dlgProveedores = document.getElementById("dlg-proveedores");
+  function openProveedores() {
+    document.getElementById("prov-nombre").value = "";
+    document.getElementById("prov-tipo").value = "";
+    document.getElementById("prov-ciudad").value = "";
+    document.getElementById("prov-correo").value = "";
+    document.getElementById("prov-telefono").value = "";
+    document.getElementById("prov-cuenta").value = "";
+    document.getElementById("prov-status").style.visibility = "hidden";
+    renderProveedoresTable();
+    dlgProveedores.showModal();
+  }
+  function renderProveedoresTable() {
+    var rows = state.proveedores.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+    var tbody = document.getElementById("prov-body");
+    document.getElementById("prov-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (p) {
+      return '<tr>' +
+        '<td>' + escapeHtml(p.nombre) + '</td>' +
+        '<td>' + (p.tipo ? escapeHtml(p.tipo) : '—') + '</td>' +
+        '<td>' + (p.ciudad ? escapeHtml(p.ciudad) : '—') + '</td>' +
+        '<td>' + (p.correo ? escapeHtml(p.correo) : '—') + '</td>' +
+        '<td>' + (p.telefono ? escapeHtml(p.telefono) : '—') + '</td>' +
+        '<td>' + (p.cuentaBancaria ? escapeHtml(p.cuentaBancaria) : '—') + '</td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-prov-btn" data-id="' + p.id + '" aria-label="Eliminar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".del-prov-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/proveedores/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderProveedoresTable(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar."); });
+      });
+    });
+  }
+  document.getElementById("dlg-proveedores-close").addEventListener("click", function () { dlgProveedores.close(); });
+  document.getElementById("dlg-proveedores-done").addEventListener("click", function () { dlgProveedores.close(); });
+  document.getElementById("btn-prov-add").addEventListener("click", function () {
+    var status = document.getElementById("prov-status");
+    var nombre = document.getElementById("prov-nombre").value.trim();
+    status.style.visibility = "visible";
+    if (!nombre) {
+      status.textContent = "Completa al menos el nombre del proveedor.";
+      status.className = "status-msg err";
+      return;
+    }
+    var payload = {
+      nombre: nombre,
+      tipo: document.getElementById("prov-tipo").value.trim(),
+      ciudad: document.getElementById("prov-ciudad").value.trim(),
+      correo: document.getElementById("prov-correo").value.trim(),
+      telefono: document.getElementById("prov-telefono").value.trim(),
+      cuentaBancaria: document.getElementById("prov-cuenta").value.trim()
+    };
+    api("/api/proveedores", { method: "POST", body: JSON.stringify(payload) })
+      .then(function () {
+        status.textContent = "Proveedor agregado.";
+        status.className = "status-msg ok";
+        document.getElementById("prov-nombre").value = "";
+        document.getElementById("prov-tipo").value = "";
+        document.getElementById("prov-ciudad").value = "";
+        document.getElementById("prov-correo").value = "";
+        document.getElementById("prov-telefono").value = "";
+        document.getElementById("prov-cuenta").value = "";
+        return refreshAll();
+      })
+      .then(function () { renderProveedoresTable(); })
+      .catch(function (err) { status.textContent = err.message || "No se pudo guardar."; status.className = "status-msg err"; });
   });
 
   /* ---------------- Arranque ---------------- */

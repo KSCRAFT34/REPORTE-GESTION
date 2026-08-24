@@ -112,6 +112,44 @@
 
   .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 28px 80px; }
 
+  /* ---------- Menú lateral (Catálogos) ---------- */
+  .app-shell { display: flex; align-items: stretch; min-height: 100vh; }
+  .sidenav {
+    flex: 0 0 208px; width: 208px; background: var(--surface); border-right: 1px solid var(--border);
+    padding: 20px 12px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .sidenav-brand {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-muted); padding: 2px 10px 14px;
+  }
+  .sidenav-item {
+    display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+    padding: 9px 10px; border-radius: var(--radius-s); border: none; background: transparent;
+    color: var(--text-primary); font-family: var(--font-sans); font-size: 13.5px; cursor: pointer;
+  }
+  .sidenav-item svg { width: 16px; height: 16px; flex: none; color: var(--text-secondary); }
+  .sidenav-item:hover { background: var(--surface-hover); }
+  .sidenav-item.active { background: var(--accent-tint); color: var(--accent); font-weight: 600; }
+  .sidenav-item.active svg { color: var(--accent); }
+  .sidenav-caret { margin-left: auto; transition: transform 0.15s; color: var(--text-muted); }
+  .sidenav-item[aria-expanded="true"] .sidenav-caret { transform: rotate(90deg); }
+  .sidenav-sub {
+    display: flex; flex-direction: column; gap: 2px; margin: 2px 0 8px 15px;
+    padding-left: 10px; border-left: 1px solid var(--border);
+  }
+  .sidenav-subitem {
+    width: 100%; text-align: left; padding: 7px 10px; border-radius: var(--radius-s);
+    border: none; background: transparent; color: var(--text-secondary); font-size: 13px; cursor: pointer;
+  }
+  .sidenav-subitem:hover { background: var(--surface-hover); color: var(--text-primary); }
+  .app-main { flex: 1 1 auto; min-width: 0; }
+  @media (max-width: 900px) {
+    .app-shell { flex-direction: column; }
+    .sidenav { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
+    .sidenav-brand { display: none; }
+    .sidenav-sub { flex-direction: row; flex-wrap: wrap; margin: 0; padding-left: 0; border-left: none; }
+  }
+
   /* ---------- Header ---------- */
   .header {
     display: flex;

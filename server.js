@@ -41,12 +41,17 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS proyectos (
       id TEXT PRIMARY KEY,
       nombre TEXT NOT NULL,
-      ciudad TEXT NOT NULL,
+      ciudad TEXT,
+      direccion TEXT DEFAULT '',
       notas TEXT DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  // Migración: permitir registrar un proyecto solo con nombre (avanzar sin
+  // tener toda la información) y guardar su dirección.
+  await pool.query(`ALTER TABLE proyectos ALTER COLUMN ciudad DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE proyectos ADD COLUMN IF NOT EXISTS direccion TEXT DEFAULT '';`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tramites (
       id TEXT PRIMARY KEY,
@@ -107,6 +112,30 @@ async function initDb() {
       fecha DATE,
       estatus TEXT NOT NULL DEFAULT 'en_proceso',
       incluir_linea_tiempo BOOLEAN NOT NULL DEFAULT true,
+      notas TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS catalogo_tramites (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      dependencia TEXT DEFAULT '',
+      ciudad TEXT DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS proveedores (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      tipo TEXT DEFAULT '',
+      ciudad TEXT DEFAULT '',
+      correo TEXT DEFAULT '',
+      telefono TEXT DEFAULT '',
+      cuenta_bancaria TEXT DEFAULT '',
       notas TEXT DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -177,7 +206,17 @@ async function initDb() {
 function dateStr(v) { return v ? new Date(v).toISOString().slice(0, 10) : null; }
 
 function proyectoRowToItem(row) {
-  return { id: row.id, nombre: row.nombre, ciudad: row.ciudad, notas: row.notas || "" };
+  return { id: row.id, nombre: row.nombre, ciudad: row.ciudad || "", direccion: row.direccion || "", notas: row.notas || "" };
+}
+function catalogoTramiteRowToItem(row) {
+  return { id: row.id, nombre: row.nombre, dependencia: row.dependencia || "", ciudad: row.ciudad || "" };
+}
+function proveedorRowToItem(row) {
+  return {
+    id: row.id, nombre: row.nombre, tipo: row.tipo || "", ciudad: row.ciudad || "",
+    correo: row.correo || "", telefono: row.telefono || "", cuentaBancaria: row.cuenta_bancaria || "",
+    notas: row.notas || ""
+  };
 }
 function tramiteRowToItem(row) {
   return {
@@ -222,9 +261,34 @@ function hitoRowToItem(row) {
 
 function sanitizeProyecto(body) {
   const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
   const ciudad = String((body && body.ciudad) || "").trim();
-  if (!nombre || !ciudad) return null;
-  return { nombre, ciudad, notas: String((body && body.notas) || "").trim() };
+  const direccion = String((body && body.direccion) || "").trim();
+  return { nombre, ciudad, direccion, notas: String((body && body.notas) || "").trim() };
+}
+
+function sanitizeCatalogoTramite(body) {
+  const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
+  return {
+    nombre,
+    dependencia: String((body && body.dependencia) || "").trim(),
+    ciudad: String((body && body.ciudad) || "").trim()
+  };
+}
+
+function sanitizeProveedor(body) {
+  const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
+  return {
+    nombre,
+    tipo: String((body && body.tipo) || "").trim(),
+    ciudad: String((body && body.ciudad) || "").trim(),
+    correo: String((body && body.correo) || "").trim(),
+    telefono: String((body && body.telefono) || "").trim(),
+    cuentaBancaria: String((body && body.cuentaBancaria) || "").trim(),
+    notas: String((body && body.notas) || "").trim()
+  };
 }
 
 function sanitizeTramite(body) {
@@ -362,19 +426,23 @@ app.get("/", requireAuth, (req, res) => {
 /* ---------------- Lectura de todo el dataset ---------------- */
 app.get("/api/data", requireAuth, async (req, res) => {
   try {
-    const [proyectos, tramites, pagos, subelementos, hitos] = await Promise.all([
+    const [proyectos, tramites, pagos, subelementos, hitos, catalogoTramites, proveedores] = await Promise.all([
       pool.query("SELECT * FROM proyectos ORDER BY nombre ASC"),
       pool.query("SELECT * FROM tramites ORDER BY fecha_vencimiento ASC NULLS LAST"),
       pool.query("SELECT * FROM pagos ORDER BY fecha DESC NULLS LAST"),
       pool.query("SELECT * FROM subelementos ORDER BY fecha ASC NULLS LAST"),
-      pool.query("SELECT * FROM hitos ORDER BY fecha ASC NULLS LAST")
+      pool.query("SELECT * FROM hitos ORDER BY fecha ASC NULLS LAST"),
+      pool.query("SELECT * FROM catalogo_tramites ORDER BY nombre ASC"),
+      pool.query("SELECT * FROM proveedores ORDER BY nombre ASC")
     ]);
     res.json({
       proyectos: proyectos.rows.map(proyectoRowToItem),
       tramites: tramites.rows.map(tramiteRowToItem),
       pagos: pagos.rows.map(pagoRowToItem),
       subelementos: subelementos.rows.map(subelementoRowToItem),
-      hitos: hitos.rows.map(hitoRowToItem)
+      hitos: hitos.rows.map(hitoRowToItem),
+      catalogoTramites: catalogoTramites.rows.map(catalogoTramiteRowToItem),
+      proveedores: proveedores.rows.map(proveedorRowToItem)
     });
   } catch (err) {
     console.error(err);
@@ -385,12 +453,12 @@ app.get("/api/data", requireAuth, async (req, res) => {
 /* ---------------- Proyectos ---------------- */
 app.post("/api/proyectos", requireEditor, async (req, res) => {
   const data = sanitizeProyecto(req.body);
-  if (!data) return res.status(400).json({ error: "Completa el nombre y la ciudad del proyecto." });
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del proyecto." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
-      "INSERT INTO proyectos (id, nombre, ciudad, notas) VALUES ($1,$2,$3,$4) RETURNING *",
-      [id, data.nombre, data.ciudad, data.notas]
+      "INSERT INTO proyectos (id, nombre, ciudad, direccion, notas) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+      [id, data.nombre, data.ciudad, data.direccion, data.notas]
     );
     res.status(201).json(proyectoRowToItem(result.rows[0]));
   } catch (err) {
@@ -401,11 +469,11 @@ app.post("/api/proyectos", requireEditor, async (req, res) => {
 
 app.put("/api/proyectos/:id", requireEditor, async (req, res) => {
   const data = sanitizeProyecto(req.body);
-  if (!data) return res.status(400).json({ error: "Completa el nombre y la ciudad del proyecto." });
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del proyecto." });
   try {
     const result = await pool.query(
-      "UPDATE proyectos SET nombre=$1, ciudad=$2, notas=$3, updated_at=now() WHERE id=$4 RETURNING *",
-      [data.nombre, data.ciudad, data.notas, req.params.id]
+      "UPDATE proyectos SET nombre=$1, ciudad=$2, direccion=$3, notas=$4, updated_at=now() WHERE id=$5 RETURNING *",
+      [data.nombre, data.ciudad, data.direccion, data.notas, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: "Proyecto no encontrado." });
     res.json(proyectoRowToItem(result.rows[0]));
@@ -600,6 +668,94 @@ app.delete("/api/hitos/:id", requireEditor, async (req, res) => {
   }
 });
 
+/* ---------------- Catálogo de trámites (lista maestra, sin fechas ni costos) ---------------- */
+app.post("/api/catalogo-tramites", requireEditor, async (req, res) => {
+  const data = sanitizeCatalogoTramite(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del trámite." });
+  const id = crypto.randomUUID();
+  try {
+    const result = await pool.query(
+      "INSERT INTO catalogo_tramites (id, nombre, dependencia, ciudad) VALUES ($1,$2,$3,$4) RETURNING *",
+      [id, data.nombre, data.dependencia, data.ciudad]
+    );
+    res.status(201).json(catalogoTramiteRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo guardar el trámite en el catálogo." });
+  }
+});
+
+app.put("/api/catalogo-tramites/:id", requireEditor, async (req, res) => {
+  const data = sanitizeCatalogoTramite(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del trámite." });
+  try {
+    const result = await pool.query(
+      "UPDATE catalogo_tramites SET nombre=$1, dependencia=$2, ciudad=$3, updated_at=now() WHERE id=$4 RETURNING *",
+      [data.nombre, data.dependencia, data.ciudad, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "No encontrado." });
+    res.json(catalogoTramiteRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo actualizar." });
+  }
+});
+
+app.delete("/api/catalogo-tramites/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM catalogo_tramites WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar." });
+  }
+});
+
+/* ---------------- Proveedores (gestores, DRO, etc.) ---------------- */
+app.post("/api/proveedores", requireEditor, async (req, res) => {
+  const data = sanitizeProveedor(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del proveedor." });
+  const id = crypto.randomUUID();
+  try {
+    const result = await pool.query(
+      `INSERT INTO proveedores (id, nombre, tipo, ciudad, correo, telefono, cuenta_bancaria, notas)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [id, data.nombre, data.tipo, data.ciudad, data.correo, data.telefono, data.cuentaBancaria, data.notas]
+    );
+    res.status(201).json(proveedorRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo guardar el proveedor." });
+  }
+});
+
+app.put("/api/proveedores/:id", requireEditor, async (req, res) => {
+  const data = sanitizeProveedor(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del proveedor." });
+  try {
+    const result = await pool.query(
+      `UPDATE proveedores SET nombre=$1, tipo=$2, ciudad=$3, correo=$4, telefono=$5, cuenta_bancaria=$6, notas=$7, updated_at=now()
+       WHERE id=$8 RETURNING *`,
+      [data.nombre, data.tipo, data.ciudad, data.correo, data.telefono, data.cuentaBancaria, data.notas, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "No encontrado." });
+    res.json(proveedorRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo actualizar." });
+  }
+});
+
+app.delete("/api/proveedores/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM proveedores WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar." });
+  }
+});
+
 /* ---------------- Importar (respaldo JSON exportado) ---------------- */
 app.post("/api/import", requireEditor, async (req, res) => {
   const body = req.body || {};
@@ -676,7 +832,7 @@ app.post("/api/import", requireEditor, async (req, res) => {
       await client.query("DELETE FROM proyectos");
     }
     for (const p of cleanProyectos) {
-      await client.query("INSERT INTO proyectos (id, nombre, ciudad, notas) VALUES ($1,$2,$3,$4)", [p.id, p.nombre, p.ciudad, p.notas]);
+      await client.query("INSERT INTO proyectos (id, nombre, ciudad, direccion, notas) VALUES ($1,$2,$3,$4,$5)", [p.id, p.nombre, p.ciudad, p.direccion, p.notas]);
     }
     for (const t of cleanTramites) {
       await client.query(

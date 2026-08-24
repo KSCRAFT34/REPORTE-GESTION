@@ -16,6 +16,15 @@ información, y queda protegida con una contraseña.
   pero que quieres ver junto con ellos en la línea de tiempo.
 - Línea de tiempo (Gantt) con un botón por trámite/subelemento/hito para decidir si
   aparece ahí, más un filtro para mostrar solo trámites, solo otra área, o todo junto.
+- Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
+  campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
+- Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir
+  llenando poco a poco (no piden todos los datos de una vez):
+  - **Proyectos**: de una vez puedes anotar nombre y dirección.
+  - **Trámites**: una lista maestra (nombre + dependencia + ciudad) para elegir de
+    ahí al dar de alta un trámite real, en vez de escribirlo desde cero.
+  - **Proveedores**: tus gestores, DRO, etc., con nombre, tipo, ciudad, correo,
+    teléfono y cuenta bancaria.
 - Base de datos PostgreSQL (la crea Render automáticamente).
 - Exportar/Importar en JSON como respaldo manual.
 
