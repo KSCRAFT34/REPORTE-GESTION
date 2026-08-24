@@ -502,6 +502,7 @@
         <div class="field">
           <label for="pago-tramite">Trámite <span class="req">*</span></label>
           <select id="pago-tramite" disabled><option value="">Selecciona un proyecto primero…</option></select>
+          <span class="field-hint">Si el pago fue por un paquete de varios trámites (no uno en específico), elige "Pago general del proyecto".</span>
         </div>
         <div class="field">
           <label for="pago-tipo">Tipo de pago <span class="req">*</span></label>
@@ -511,6 +512,19 @@
           </select>
         </div>
         <div class="field">
+          <label for="pago-concepto">Pagado a</label>
+          <select id="pago-concepto">
+            <option value="">Sin especificar</option>
+            <option value="Gestor">Gestor</option>
+            <option value="Firma de DRO">Firma de DRO</option>
+            <option value="__otro__">Otro…</option>
+          </select>
+        </div>
+        <div class="field" id="pago-concepto-otro-field" style="display:none">
+          <label for="pago-concepto-otro">¿A quién?</label>
+          <input type="text" id="pago-concepto-otro" placeholder="p. ej. Notario">
+        </div>
+        <div class="field">
           <label for="pago-monto">Monto pagado (MXN) <span class="req">*</span></label>
           <input type="number" id="pago-monto" min="0" step="100" placeholder="0">
         </div>
@@ -518,7 +532,7 @@
           <label for="pago-fecha">Fecha de pago <span class="req">*</span></label>
           <input type="date" id="pago-fecha">
         </div>
-        <div class="field">
+        <div class="field span-2">
           <label for="pago-notas">Notas</label>
           <input type="text" id="pago-notas" placeholder="Folio, referencia…">
         </div>
@@ -781,6 +795,13 @@
   function pagoTipoLabel(tipo) { return tipo === "derechos" ? "Derechos" : "Gestión"; }
   function pagosForTramites(ids) { return state.pagos.filter(function (pg) { return ids.indexOf(pg.tramiteId) !== -1; }); }
   function pagosTotalForTramites(ids) { return pagosForTramites(ids).reduce(function (s, pg) { return s + Number(pg.monto); }, 0); }
+  function paquetePagos(proyectoIds) { return state.pagos.filter(function (pg) { return !pg.tramiteId && pg.proyectoId && proyectoIds.indexOf(pg.proyectoId) !== -1; }); }
+  function paquetePagosTotal(proyectoIds) { return paquetePagos(proyectoIds).reduce(function (s, pg) { return s + Number(pg.monto); }, 0); }
+  function visibleProyectoIds(filteredTramites) {
+    var set = {};
+    filteredTramites.forEach(function (t) { set[t.proyectoId] = true; });
+    return Object.keys(set);
+  }
 
   /* ---------------- Subelementos / hitos: helpers ---------------- */
   function subelementosForTramite(id) { return state.subelementos.filter(function (se) { return se.tramiteId === id; }); }
@@ -859,7 +880,7 @@
     document.getElementById("stat-total-foot").textContent = "de " + state.tramites.length + " en total";
     var cost = filtered.reduce(function (s, it) { return s + totalCosto(it); }, 0);
     document.getElementById("stat-cost").textContent = fmtMoney.format(cost);
-    var pagosSum = pagosTotalForTramites(filtered.map(function (it) { return it.id; }));
+    var pagosSum = pagosTotalForTramites(filtered.map(function (it) { return it.id; })) + paquetePagosTotal(visibleProyectoIds(filtered));
     document.getElementById("stat-pagos").textContent = fmtMoney.format(pagosSum);
     var soon = 0, overdue = 0;
     filtered.forEach(function (it) {
@@ -930,7 +951,7 @@
       var linkedIds = linked.map(function (t) { return t.id; });
       var totalPresupuesto = linked.reduce(function (s, t) { return s + (t.presupuesto != null ? Number(t.presupuesto) : 0); }, 0);
       var totalProyeccion = linked.reduce(function (s, t) { return s + totalCosto(t); }, 0);
-      var totalPagosReal = pagosTotalForTramites(linkedIds);
+      var totalPagosReal = pagosTotalForTramites(linkedIds) + paquetePagosTotal([p.id]);
       var desvioMoney = totalProyeccion - totalPresupuesto;
       var concluded = linked.filter(function (t) { return t.fechaConclusionReal; });
       var timeDevs = concluded.map(timeDeviationDays).filter(function (d) { return d !== null; });
@@ -1571,15 +1592,22 @@
       tiempoUnidad: DURATION_UNITS.indexOf(t.tiempoUnidad) !== -1 ? t.tiempoUnidad : "dias"
     };
   }
-  function sanitizePagoRecord(pg, tramiteIdMap) {
+  function sanitizePagoRecord(pg, tramiteIdMap, idMap) {
     if (!pg) return null;
-    var newTramiteId = tramiteIdMap[pg.tramiteId];
-    if (!newTramiteId) return null;
+    var newTramiteId = pg.tramiteId != null ? tramiteIdMap[pg.tramiteId] : null;
+    var newProyectoId = pg.proyectoId != null ? (idMap ? idMap[pg.proyectoId] : null) : null;
+    if (!newTramiteId && !newProyectoId) return null;
     var tipo = PAGO_TIPOS.indexOf(pg.tipo) !== -1 ? pg.tipo : null;
     if (!tipo) return null;
     var monto = Number(pg.monto);
     if (!isFinite(monto) || monto <= 0) return null;
-    return { id: uid(), tramiteId: newTramiteId, tipo: tipo, monto: monto, fecha: pg.fecha || "", notas: (pg.notas || "").toString() };
+    return {
+      id: uid(),
+      tramiteId: newTramiteId || null,
+      proyectoId: newTramiteId ? null : (newProyectoId || null),
+      tipo: tipo, monto: monto, fecha: pg.fecha || "", notas: (pg.notas || "").toString(),
+      concepto: (pg.concepto || "").toString()
+    };
   }
   function sanitizeSubelementoRecord(se, tramiteIdMap) {
     if (!se || !se.nombre) return null;
@@ -1640,7 +1668,7 @@
           incluirLineaTiempo: t.incluirLineaTiempo === false ? false : true
         }, extra);
       });
-      var pagos2 = Array.isArray(parsed.pagos) ? parsed.pagos.map(function (pg) { return sanitizePagoRecord(pg, tramiteIdMap); }).filter(Boolean) : [];
+      var pagos2 = Array.isArray(parsed.pagos) ? parsed.pagos.map(function (pg) { return sanitizePagoRecord(pg, tramiteIdMap, idMap); }).filter(Boolean) : [];
       var subelementos2 = Array.isArray(parsed.subelementos) ? parsed.subelementos.map(function (se) { return sanitizeSubelementoRecord(se, tramiteIdMap); }).filter(Boolean) : [];
       var hitos2 = Array.isArray(parsed.hitos) ? parsed.hitos.map(function (h) { return sanitizeHitoRecord(h, idMap); }).filter(Boolean) : [];
       return { proyectos: proyectos2, tramites: tramites2, pagos: pagos2, subelementos: subelementos2, hitos: hitos2 };
@@ -1707,6 +1735,7 @@
       return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
     }).join("");
   }
+  var PAGO_PAQUETE_VALUE = "__paquete__";
   function populatePagoTramiteSelect(proyectoId) {
     var el = document.getElementById("pago-tramite");
     var list = state.tramites.filter(function (t) { return t.proyectoId === proyectoId; })
@@ -1716,14 +1745,23 @@
       el.disabled = true;
       return;
     }
-    el.innerHTML = list.length
-      ? ('<option value="">Selecciona un trámite…</option>' + list.map(function (t) {
-          return '<option value="' + t.id + '">' + escapeHtml(t.nombre) + '</option>';
-        }).join(""))
-      : '<option value="">(este proyecto no tiene trámites)</option>';
-    el.disabled = !list.length;
+    el.innerHTML = '<option value="">Selecciona un trámite…</option>' +
+      '<option value="' + PAGO_PAQUETE_VALUE + '">— Pago general del proyecto (paquete) —</option>' +
+      list.map(function (t) {
+        return '<option value="' + t.id + '">' + escapeHtml(t.nombre) + '</option>';
+      }).join("");
+    el.disabled = false;
   }
   document.getElementById("pago-proyecto").addEventListener("change", function (e) { populatePagoTramiteSelect(e.target.value); });
+
+  document.getElementById("pago-concepto").addEventListener("change", function (e) {
+    document.getElementById("pago-concepto-otro-field").style.display = e.target.value === "__otro__" ? "" : "none";
+  });
+  function pagoConceptoValue() {
+    var sel = document.getElementById("pago-concepto").value;
+    if (sel === "__otro__") return document.getElementById("pago-concepto-otro").value.trim();
+    return sel;
+  }
 
   function populatePagoFiltroProyecto(preselectId) {
     var el = document.getElementById("pago-filtro-proyecto");
@@ -1734,12 +1772,15 @@
     if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
   }
 
+  function pagoProyectoId(pg) {
+    if (pg.tramiteId) { var t = getTramite(pg.tramiteId); return t ? t.proyectoId : null; }
+    return pg.proyectoId || null;
+  }
   function renderPagosLedger() {
     var proyectoFiltro = document.getElementById("pago-filtro-proyecto").value;
     var rows = state.pagos.slice();
     if (proyectoFiltro) {
-      var idsInProyecto = state.tramites.filter(function (t) { return t.proyectoId === proyectoFiltro; }).map(function (t) { return t.id; });
-      rows = rows.filter(function (pg) { return idsInProyecto.indexOf(pg.tramiteId) !== -1; });
+      rows = rows.filter(function (pg) { return pagoProyectoId(pg) === proyectoFiltro; });
     }
     rows.sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
 
@@ -1752,11 +1793,18 @@
     var tbody = document.getElementById("pagos-ledger-body");
     document.getElementById("pagos-ledger-empty").style.display = rows.length ? "none" : "block";
     tbody.innerHTML = rows.map(function (pg) {
-      var t = getTramite(pg.tramiteId);
+      var t = pg.tramiteId ? getTramite(pg.tramiteId) : null;
+      var pid = pagoProyectoId(pg);
+      var proy = pid ? getProyecto(pid) : null;
+      var nombreCol = pg.tramiteId
+        ? escapeHtml(t ? t.nombre : "(trámite eliminado)")
+        : '<em>Pago general del proyecto</em>';
+      var conceptoSub = pg.concepto ? ('<span class="sub-note">' + escapeHtml(pg.concepto) + '</span>') : '';
+      var notasSub = pg.notas ? ('<span class="sub-note">' + escapeHtml(pg.notas) + '</span>') : '';
       return '<tr>' +
         '<td class="cell-date">' + fmtDate(pg.fecha) + '</td>' +
-        '<td>' + escapeHtml(t ? t.nombre : "(trámite eliminado)") + (pg.notas ? '<span class="sub-note">' + escapeHtml(pg.notas) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(t ? proyectoNombre(t) : "—") + '</td>' +
+        '<td>' + nombreCol + conceptoSub + notasSub + '</td>' +
+        '<td>' + escapeHtml(proy ? proy.nombre : "—") + '</td>' +
         '<td>' + pagoTipoLabel(pg.tipo) + '</td>' +
         '<td class="cell-cost">' + fmtMoney.format(Number(pg.monto)) + '</td>' +
         '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-pago-btn" data-id="' + pg.id + '" aria-label="Eliminar pago">' +
@@ -1783,6 +1831,9 @@
     document.getElementById("pago-monto").value = "";
     document.getElementById("pago-fecha").value = new Date().toISOString().slice(0, 10);
     document.getElementById("pago-notas").value = "";
+    document.getElementById("pago-concepto").value = "";
+    document.getElementById("pago-concepto-otro").value = "";
+    document.getElementById("pago-concepto-otro-field").style.display = "none";
     document.getElementById("pago-form-status").style.visibility = "hidden";
     populatePagoFiltroProyecto(state.filters.proyectoId);
     renderPagosLedger();
@@ -1799,13 +1850,20 @@
     var montoVal = document.getElementById("pago-monto").value;
     var fecha = document.getElementById("pago-fecha").value;
     var notas = document.getElementById("pago-notas").value.trim();
+    var concepto = pagoConceptoValue();
     status.style.visibility = "visible";
     if (!proyectoId || !tramiteId || !montoVal || Number(montoVal) <= 0 || !fecha) {
-      status.textContent = "Completa proyecto, trámite, monto y fecha.";
+      status.textContent = "Completa proyecto, trámite (o el pago de paquete), monto y fecha.";
       status.className = "status-msg err";
       return;
     }
-    api("/api/pagos", { method: "POST", body: JSON.stringify({ tramiteId: tramiteId, tipo: PAGO_TIPOS.indexOf(tipo) !== -1 ? tipo : "gestion", monto: Number(montoVal), fecha: fecha, notas: notas }) })
+    var isPaquete = tramiteId === PAGO_PAQUETE_VALUE;
+    var payload = {
+      tipo: PAGO_TIPOS.indexOf(tipo) !== -1 ? tipo : "gestion",
+      monto: Number(montoVal), fecha: fecha, notas: notas, concepto: concepto
+    };
+    if (isPaquete) payload.proyectoId = proyectoId; else payload.tramiteId = tramiteId;
+    api("/api/pagos", { method: "POST", body: JSON.stringify(payload) })
       .then(function () {
         status.textContent = "Pago registrado.";
         status.className = "status-msg ok";

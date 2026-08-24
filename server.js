@@ -70,15 +70,22 @@ async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS pagos (
       id TEXT PRIMARY KEY,
-      tramite_id TEXT NOT NULL REFERENCES tramites(id) ON DELETE CASCADE,
+      tramite_id TEXT REFERENCES tramites(id) ON DELETE CASCADE,
+      proyecto_id TEXT REFERENCES proyectos(id) ON DELETE CASCADE,
       tipo TEXT NOT NULL,
       monto NUMERIC NOT NULL,
       fecha DATE,
       notas TEXT DEFAULT '',
+      concepto TEXT DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS incluir_linea_tiempo BOOLEAN NOT NULL DEFAULT true;`);
+  // Migración para bases de datos creadas antes de que los pagos pudieran
+  // capturarse por proyecto (pago "de paquete") o llevar un concepto (Gestor/DRO/otro).
+  await pool.query(`ALTER TABLE pagos ALTER COLUMN tramite_id DROP NOT NULL;`);
+  await pool.query(`ALTER TABLE pagos ADD COLUMN IF NOT EXISTS proyecto_id TEXT REFERENCES proyectos(id) ON DELETE CASCADE;`);
+  await pool.query(`ALTER TABLE pagos ADD COLUMN IF NOT EXISTS concepto TEXT DEFAULT '';`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subelementos (
       id TEXT PRIMARY KEY,
@@ -193,8 +200,9 @@ function tramiteRowToItem(row) {
 }
 function pagoRowToItem(row) {
   return {
-    id: row.id, tramiteId: row.tramite_id, tipo: row.tipo,
-    monto: Number(row.monto) || 0, fecha: dateStr(row.fecha) || "", notas: row.notas || ""
+    id: row.id, tramiteId: row.tramite_id || null, proyectoId: row.proyecto_id || null, tipo: row.tipo,
+    monto: Number(row.monto) || 0, fecha: dateStr(row.fecha) || "", notas: row.notas || "",
+    concepto: row.concepto || ""
   };
 }
 function subelementoRowToItem(row) {
@@ -245,12 +253,22 @@ function sanitizeTramite(body) {
 }
 
 function sanitizePago(body) {
-  const tramiteId = String((body && body.tramiteId) || "").trim();
+  const tramiteId = String((body && body.tramiteId) || "").trim() || null;
+  const proyectoId = String((body && body.proyectoId) || "").trim() || null;
+  if (!tramiteId && !proyectoId) return null;
   const tipo = PAGO_TIPOS.includes(body && body.tipo) ? body.tipo : null;
   const monto = Number(body && body.monto);
   const fecha = body && body.fecha ? String(body.fecha).slice(0, 10) : null;
-  if (!tramiteId || !tipo || !isFinite(monto) || monto <= 0 || !fecha) return null;
-  return { tramiteId, tipo, monto, fecha, notas: String((body && body.notas) || "").trim() };
+  if (!tipo || !isFinite(monto) || monto <= 0 || !fecha) return null;
+  return {
+    // Un pago va ligado a un trámite específico, O a todo el proyecto (pago de
+    // paquete) — si viene un trámite, ese manda y no guardamos el proyecto.
+    tramiteId: tramiteId || null,
+    proyectoId: tramiteId ? null : proyectoId,
+    tipo, monto, fecha,
+    notas: String((body && body.notas) || "").trim(),
+    concepto: String((body && body.concepto) || "").trim()
+  };
 }
 
 function sanitizeSubelemento(body) {
@@ -467,17 +485,17 @@ app.delete("/api/tramites/:id", requireEditor, async (req, res) => {
 /* ---------------- Pagos ---------------- */
 app.post("/api/pagos", requireEditor, async (req, res) => {
   const data = sanitizePago(req.body || {});
-  if (!data) return res.status(400).json({ error: "Completa proyecto, trámite, tipo, monto y fecha." });
+  if (!data) return res.status(400).json({ error: "Completa proyecto (o trámite), tipo, monto y fecha." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
-      "INSERT INTO pagos (id, tramite_id, tipo, monto, fecha, notas) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
-      [id, data.tramiteId, data.tipo, data.monto, data.fecha, data.notas]
+      "INSERT INTO pagos (id, tramite_id, proyecto_id, tipo, monto, fecha, notas, concepto) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+      [id, data.tramiteId, data.proyectoId, data.tipo, data.monto, data.fecha, data.notas, data.concepto]
     );
     res.status(201).json(pagoRowToItem(result.rows[0]));
   } catch (err) {
     console.error(err);
-    if (err.code === "23503") return res.status(400).json({ error: "El trámite seleccionado no existe." });
+    if (err.code === "23503") return res.status(400).json({ error: "El trámite o proyecto seleccionado no existe." });
     res.status(500).json({ error: "No se pudo registrar el pago." });
   }
 });
@@ -616,9 +634,11 @@ app.post("/api/import", requireEditor, async (req, res) => {
 
   const cleanPagos = incomingPagos
     .map((pg) => {
-      const mappedTramiteId = tramiteIdMap[pg && pg.tramiteId];
-      if (!mappedTramiteId) return null;
-      const data = sanitizePago(Object.assign({}, pg, { tramiteId: mappedTramiteId }));
+      // Un pago viene o ligado a un trámite, o (pago de paquete) ligado directo a un proyecto.
+      const mappedTramiteId = pg && pg.tramiteId != null ? tramiteIdMap[pg.tramiteId] : null;
+      const mappedProyectoId = pg && pg.proyectoId != null ? proyIdMap[pg.proyectoId] : null;
+      if (!mappedTramiteId && !mappedProyectoId) return null;
+      const data = sanitizePago(Object.assign({}, pg, { tramiteId: mappedTramiteId, proyectoId: mappedProyectoId }));
       return data ? Object.assign({ id: crypto.randomUUID() }, data) : null;
     })
     .filter(Boolean);
@@ -669,8 +689,8 @@ app.post("/api/import", requireEditor, async (req, res) => {
     }
     for (const pg of cleanPagos) {
       await client.query(
-        "INSERT INTO pagos (id, tramite_id, tipo, monto, fecha, notas) VALUES ($1,$2,$3,$4,$5,$6)",
-        [pg.id, pg.tramiteId, pg.tipo, pg.monto, pg.fecha, pg.notas]
+        "INSERT INTO pagos (id, tramite_id, proyecto_id, tipo, monto, fecha, notas, concepto) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+        [pg.id, pg.tramiteId, pg.proyectoId, pg.tipo, pg.monto, pg.fecha, pg.notas, pg.concepto]
       );
     }
     for (const se of cleanSubelementos) {
