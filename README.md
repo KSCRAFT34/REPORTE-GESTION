@@ -12,8 +12,22 @@ información, y queda protegida con una contraseña.
 - Pagos reales (estado de cuenta) separados de la proyección de costos.
 - Subelementos dentro de un trámite (por ejemplo, los distintos pasos que exige una
   Licencia de Edificación), cada uno con su propia fecha y estatus.
-- Hitos de otras áreas (comercial, obra, due diligence, etc.) que no son trámites
-  pero que quieres ver junto con ellos en la línea de tiempo.
+- **Otras áreas** (comercial, obra, due diligence, etc.): pantalla propia en el menú
+  izquierdo donde capturas cada hito igual que un trámite — con fecha de inicio y
+  término, responsable, y su propio color por área — en vez de una fecha suelta.
+- **Depende de**: tanto en trámites como en "Otras áreas" puedes marcar que una
+  actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
+  la fecha de vencimiento de la actividad de la que depende (se atrasa o se
+  adelanta), la actividad dependiente se recorre automáticamente el mismo número de
+  días — y así en cadena con todo lo que dependa de esas. Ya no hay que ir moviendo
+  fecha por fecha a mano cuando algo se atrasa.
+- **Historial de fechas**: reporte aparte (menú izquierdo) que registra cada vez que
+  se mueve la fecha de inicio o vencimiento de un trámite u otra área — a mano o por
+  el recorrido automático explicado arriba. Muestra cuántas veces se ha movido cada
+  actividad, su fecha original vs. la actual, y el detalle de cada cambio (fecha
+  anterior → nueva, si fue manual o automático, y cuándo). La línea de tiempo
+  principal siempre muestra solo la fecha vigente; este historial es para consultar
+  aparte qué tanto se ha movido algo.
 - Línea de tiempo (Gantt) con un botón por trámite/subelemento/hito para decidir si
   aparece ahí, más un filtro para mostrar solo trámites, solo otra área, o todo junto.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un

@@ -197,6 +197,7 @@
   .btn-ghost:hover { background: var(--surface-hover); }
   .btn-danger { color: var(--critical); }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-sm { padding: 5px 10px; font-size: 12.5px; }
   .icon-btn {
     width: 28px; height: 28px; padding: 0; justify-content: center;
     border-radius: var(--radius-s); border: 1px solid transparent; background: transparent;
@@ -205,8 +206,6 @@
   .icon-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
   .icon-btn svg { width: 16px; height: 16px; }
   .icon-btn.danger:hover { color: var(--critical); background: var(--critical-tint); }
-  .icon-btn.linea-toggle-btn.active { color: var(--accent); }
-  .icon-btn.linea-toggle-btn:not(.active) { color: var(--text-muted); }
   .link-btn { background: none; border: none; color: var(--accent); font-size: 12px; font-weight: 500; cursor: pointer; padding: 0; }
   .link-btn:hover { text-decoration: underline; }
 
@@ -370,6 +369,23 @@
   .pill .dot.st-urgente { background: var(--serious); }
   .pill .dot.st-vencido { background: var(--critical); }
   .pill .dot.st-completado { background: var(--text-muted); }
+  .pill.area-comercial { background: var(--accent-tint); color: var(--accent); }
+  .pill.area-obra { background: var(--warning-tint); color: var(--warning); }
+  .pill.area-due_diligence { background: var(--serious-tint); color: var(--serious); }
+  .pill.area-otro { background: var(--neutral-tint); color: var(--text-secondary); }
+
+  /* ---------- Toggle "Línea de tiempo" (visible/oculto) en la tabla de trámites ---------- */
+  .pill-toggle, .pill-toggle-static {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; font-family: var(--font-sans);
+  }
+  .pill-toggle { border: 1px solid transparent; cursor: pointer; }
+  .pill-toggle.on, .pill-toggle-static.on { background: var(--accent-tint); color: var(--accent); }
+  .pill-toggle.on:hover { background: var(--accent-tint-strong); }
+  .pill-toggle.off, .pill-toggle-static.off { background: var(--neutral-tint); color: var(--text-muted); }
+  .pill-toggle.off:hover { background: var(--surface-hover); color: var(--text-secondary); }
+  .pill-toggle-static { display: none; }
+  body.role-viewer .pill-toggle-static { display: inline-flex; }
   .row-actions { display: flex; gap: 2px; justify-content: flex-end; }
   .empty-state { padding: 40px 18px; text-align: center; color: var(--text-muted); }
   .empty-state svg { width: 30px; height: 30px; margin-bottom: 10px; opacity: 0.6; }

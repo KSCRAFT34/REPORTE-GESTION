@@ -17,6 +17,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h6"/><path d="M4 4h16v16H4z"/></svg>
       Trámites
     </button>
+    <button type="button" class="sidenav-item" id="nav-hitos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M8 14h2M8 18h6"/></svg>
+      Otras áreas
+    </button>
+    <button type="button" class="sidenav-item" id="nav-historial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+      Historial de fechas
+    </button>
     <button type="button" class="sidenav-item" id="nav-catalogos-toggle" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7l-2-2H5a2 2 0 0 0-2 2Z"/></svg>
       Catálogos
@@ -49,10 +57,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
         Pagos
       </button>
-      <button class="btn" id="btn-hitos">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Hitos
-      </button>
       <button class="btn btn-primary requires-edit" id="btn-add" title="Registra un proyecto primero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nuevo trámite
@@ -73,6 +77,7 @@
     <span id="net-banner-text">No se pudo conectar con el servidor.</span>
   </div>
 
+  <div id="view-tramites">
   <div class="stats">
     <div class="stat-tile">
       <span class="stat-label">Trámites (filtro actual)</span>
@@ -242,10 +247,11 @@
             <th data-sort="fechaVencimiento"><button>Vencimiento <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
             <th data-sort="estado"><button>Estado <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button></th>
             <th>Responsable</th>
+            <th>Línea de tiempo</th>
             <th></th>
           </tr>
         </thead>
-        <tbody id="table-body"><tr><td colspan="9" class="loading-row">Cargando trámites…</td></tr></tbody>
+        <tbody id="table-body"><tr><td colspan="10" class="loading-row">Cargando trámites…</td></tr></tbody>
       </table>
     </div>
     <div class="empty-state" id="empty-state" style="display:none">
@@ -255,7 +261,119 @@
   </div>
 
   <footer class="note">Los datos se guardan en el servidor y los ve todo tu equipo. Usa “Exportar” de vez en cuando para tener un respaldo.</footer>
-</div>
+  </div>
+
+  <div id="view-hitos" style="display:none">
+    <div class="header">
+      <div class="header-title">
+        <span class="eyebrow">CRAFT · Gestión de trámites</span>
+        <h1>Otras áreas</h1>
+        <div class="header-sub">Hitos de comercial, obra, due diligence, etc. — con su propia fecha de inicio y término, igual que un trámite.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary requires-edit" id="btn-add-hito" title="Registra un proyecto primero">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo hito
+        </button>
+      </div>
+    </div>
+
+    <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
+      <span class="area-filter-label">Área:</span>
+      <label><input type="checkbox" checked data-hito-area="comercial"> Comercial</label>
+      <label><input type="checkbox" checked data-hito-area="obra"> Obra</label>
+      <label><input type="checkbox" checked data-hito-area="due_diligence"> Due diligence</label>
+      <label><input type="checkbox" checked data-hito-area="otro"> Otro</label>
+      <span class="area-filter-label" style="margin-left:18px">Proyecto:</span>
+      <select id="hito-filtro-proyecto" style="max-width:220px"><option value="">Todos los proyectos</option></select>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Detalle de otras áreas</h2>
+          <div class="hint" id="hitos-hint">0 hitos</div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Proyecto</th>
+              <th>Ciudad</th>
+              <th>Área</th>
+              <th>Estado</th>
+              <th>Inicio</th>
+              <th>Término</th>
+              <th>Responsable</th>
+              <th>Depende de</th>
+              <th>Línea de tiempo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="hitos-table-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="hitos-empty-state" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <div>Aún no hay hitos de otras áreas capturados. Usa "Nuevo hito" arriba para agregar el primero.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-historial" style="display:none">
+    <div class="header">
+      <div class="header-title">
+        <span class="eyebrow">CRAFT · Gestión de trámites</span>
+        <h1>Historial de fechas</h1>
+        <div class="header-sub">Cuántas veces se ha movido la fecha de cada actividad y cuánto en total. La línea de tiempo siempre muestra solo la fecha vigente; este reporte es aparte.</div>
+      </div>
+    </div>
+
+    <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
+      <span class="area-filter-label">Proyecto:</span>
+      <select id="hist-filtro-proyecto" style="max-width:220px"><option value="">Todos los proyectos</option></select>
+      <span class="area-filter-label" style="margin-left:18px">Tipo:</span>
+      <select id="hist-filtro-tipo" style="max-width:160px">
+        <option value="">Todos</option>
+        <option value="tramite">Trámites</option>
+        <option value="hito">Otras áreas</option>
+      </select>
+      <span class="area-filter-label" style="margin-left:18px">Buscar:</span>
+      <input type="text" id="hist-filtro-nombre" placeholder="Nombre de la actividad…" style="max-width:220px">
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Actividades con cambios de fecha</h2>
+          <div class="hint" id="historial-hint">0 actividades</div>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Proyecto</th>
+              <th>Tipo</th>
+              <th># de cambios</th>
+              <th>Fecha original</th>
+              <th>Fecha actual</th>
+              <th>Diferencia total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="historial-table-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="historial-empty-state" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+        <div>Todavía no hay cambios de fecha registrados. En cuanto muevas la fecha de un trámite u otra área, aparecerá aquí.</div>
+      </div>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -389,6 +507,12 @@
         <div class="field span-2">
           <label for="in-notas">Notas</label>
           <textarea id="in-notas" placeholder="Folio, dependencia, requisitos pendientes…"></textarea>
+        </div>
+
+        <div class="field span-2">
+          <label for="in-depende">Depende de</label>
+          <select id="in-depende"><option value="">Ninguno</option></select>
+          <span class="field-hint">Si la fecha de vencimiento de esa actividad se recorre, esta se recorre automáticamente el mismo número de días.</span>
         </div>
 
         <div class="form-section-label span-2">Línea de tiempo</div>
@@ -594,85 +718,115 @@
 <!-- Hitos: hitos de otras áreas (comercial, obra, due diligence…) -->
 <dialog id="dlg-hitos" data-size="lg">
   <div class="dlg-head">
-    <h2>Hitos de otras áreas</h2>
+    <h2 id="dlg-hitos-title">Nuevo hito</h2>
     <button type="button" class="icon-btn" id="dlg-hitos-close" aria-label="Cerrar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
   <div class="dlg-body">
-    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Hitos que no son trámites (comercial, obra, due diligence, etc.) pero que quieres ver en la línea de tiempo.</p>
-    <div class="requires-edit">
-      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Registrar un hito</div>
-      <div class="form-grid" style="margin-bottom:6px">
-        <div class="field">
-          <label for="hito-proyecto">Proyecto <span class="req">*</span></label>
-          <select id="hito-proyecto"></select>
-        </div>
-        <div class="field">
-          <label for="hito-area">Área <span class="req">*</span></label>
-          <select id="hito-area">
-            <option value="comercial">Comercial</option>
-            <option value="obra">Obra</option>
-            <option value="due_diligence">Due diligence</option>
-            <option value="otro">Otro</option>
-          </select>
-        </div>
-        <div class="field span-2">
-          <label for="hito-nombre">Nombre <span class="req">*</span></label>
-          <input type="text" id="hito-nombre" placeholder="p. ej. Firma de contrato de preventa">
-        </div>
-        <div class="field">
-          <label for="hito-fecha">Fecha</label>
-          <input type="date" id="hito-fecha">
-        </div>
-        <div class="field">
-          <label for="hito-estatus">Estatus</label>
-          <select id="hito-estatus">
-            <option value="no_iniciado">No iniciado</option>
-            <option value="en_proceso" selected>En proceso</option>
-            <option value="completado">Completado</option>
-          </select>
-        </div>
-        <div class="field span-2">
-          <label for="hito-notas">Notas</label>
-          <input type="text" id="hito-notas" placeholder="Opcional">
-        </div>
-        <div class="field span-2">
-          <label class="checkbox-inline"><input type="checkbox" id="hito-incluir-linea" checked> Mostrar en la línea de tiempo</label>
-        </div>
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Actividades de otras áreas (comercial, obra, due diligence, etc.) que no son trámites, capturadas igual que uno: con fecha de inicio, fecha de término y responsable.</p>
+    <div class="form-grid">
+      <div class="field">
+        <label for="hito-proyecto">Proyecto <span class="req">*</span></label>
+        <select id="hito-proyecto"></select>
       </div>
-      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
-        <div class="status-msg" id="hito-form-status" style="visibility:hidden;margin:0"></div>
-        <button type="button" class="btn btn-primary" id="btn-hito-add">Registrar hito</button>
+      <div class="field">
+        <label for="hito-area">Área <span class="req">*</span></label>
+        <select id="hito-area">
+          <option value="comercial">Comercial</option>
+          <option value="obra">Obra</option>
+          <option value="due_diligence">Due diligence</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="hito-nombre">Nombre <span class="req">*</span></label>
+        <input type="text" id="hito-nombre" placeholder="p. ej. Firma de contrato de preventa">
+      </div>
+      <div class="field">
+        <label for="hito-inicio">Fecha de inicio</label>
+        <input type="date" id="hito-inicio">
+      </div>
+      <div class="field">
+        <label for="hito-vencimiento">Fecha de término</label>
+        <input type="date" id="hito-vencimiento">
+      </div>
+      <div class="field">
+        <label for="hito-estatus">Estatus</label>
+        <select id="hito-estatus">
+          <option value="no_iniciado">No iniciado</option>
+          <option value="en_proceso" selected>En proceso</option>
+          <option value="completado">Completado</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="hito-responsable">Responsable</label>
+        <input type="text" id="hito-responsable" list="dl-responsables" placeholder="Opcional">
+      </div>
+      <div class="field span-2">
+        <label for="hito-depende">Depende de</label>
+        <select id="hito-depende"><option value="">Ninguno</option></select>
+        <span class="field-hint">Si la fecha de término de esa actividad se recorre, esta se recorre automáticamente el mismo número de días.</span>
+      </div>
+      <div class="field span-2">
+        <label for="hito-notas">Notas</label>
+        <input type="text" id="hito-notas" placeholder="Opcional">
+      </div>
+      <div class="field span-2">
+        <label class="checkbox-inline"><input type="checkbox" id="hito-incluir-linea" checked> Mostrar en la línea de tiempo</label>
       </div>
     </div>
+    <div class="status-msg" id="hito-form-status" style="visibility:hidden"></div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-hitos-close2">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="btn-hito-save">Guardar hito</button>
+  </div>
+</dialog>
 
-    <div class="form-section-label">Hitos registrados</div>
-    <div class="field" style="max-width:320px;margin:10px 0">
-      <label for="hito-filtro-proyecto">Ver hitos de</label>
-      <select id="hito-filtro-proyecto"><option value="">Todos los proyectos</option></select>
-    </div>
+<!-- Hito: Delete dialog -->
+<dialog id="dlg-delete-hito" data-size="sm">
+  <div class="dlg-head">
+    <h2>Eliminar hito</h2>
+    <button type="button" class="icon-btn" id="dlg-delete-hito-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p id="dlg-delete-hito-msg" style="margin:0;color:var(--text-secondary)"></p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-delete-hito-cancel">Cerrar</button>
+    <button type="button" class="btn btn-danger" id="dlg-delete-hito-confirm">Eliminar</button>
+  </div>
+</dialog>
+
+<!-- Historial de fechas: detalle de una actividad -->
+<dialog id="dlg-historial-detalle" data-size="md">
+  <div class="dlg-head">
+    <h2 id="dlg-historial-title">Historial de cambios</h2>
+    <button type="button" class="icon-btn" id="dlg-historial-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Nombre</th>
-            <th>Proyecto</th>
-            <th>Área</th>
-            <th>Estatus</th>
-            <th></th>
+            <th>Campo</th>
+            <th>Fecha anterior</th>
+            <th>Fecha nueva</th>
+            <th>Motivo</th>
+            <th>Cuándo</th>
           </tr>
         </thead>
-        <tbody id="hitos-body"></tbody>
+        <tbody id="dlg-historial-body"></tbody>
       </table>
-    </div>
-    <div class="empty-state" id="hitos-empty" style="display:none">
-      <div>Aún no registran hitos. Usa el formulario de arriba para capturar el primero.</div>
     </div>
   </div>
   <div class="dlg-foot">
-    <button type="button" class="btn" id="dlg-hitos-done">Cerrar</button>
+    <button type="button" class="btn" id="dlg-historial-close2">Cerrar</button>
   </div>
 </dialog>
 
@@ -828,6 +982,7 @@
     hitos: [],
     catalogoTramites: [],
     proveedores: [],
+    historialFechas: [],
     filters: {
       search: "", ciudad: "", proyectoId: "", estado: "",
       areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
@@ -837,7 +992,11 @@
     editingTramiteId: null,
     deletingTramiteId: null,
     editingProyectoId: null,
-    deletingProyectoId: null
+    deletingProyectoId: null,
+    editingHitoId: null,
+    deletingHitoId: null,
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, due_diligence: true, otro: true } },
+    historialFilters: { proyectoId: "", tipo: "", nombre: "" }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -929,6 +1088,7 @@
       state.hitos = data.hitos || [];
       state.catalogoTramites = data.catalogoTramites || [];
       state.proveedores = data.proveedores || [];
+      state.historialFechas = data.historialFechas || [];
       hideBanner();
       renderAll();
     }).catch(function (err) {
@@ -1187,12 +1347,14 @@
           (st !== "completado" ? ' · ' + daysLabel(it).replace(/^(Vence(?: hoy)?(?: en)?|Vencido hace)\s*/, function (m) { return ""; }) : '') +
         '</span></td>' +
         '<td>' + escapeHtml(it.responsable || "—") + '</td>' +
-        '<td><div class="row-actions requires-edit">' +
-          '<button class="icon-btn linea-toggle-btn' + (it.incluirLineaTiempo === false ? '' : ' active') + '" data-id="' + it.id + '" aria-label="' + (it.incluirLineaTiempo === false ? 'Mostrar en la línea de tiempo' : 'Ocultar de la línea de tiempo') + '" title="' + (it.incluirLineaTiempo === false ? 'No aparece en la línea de tiempo — clic para mostrarlo' : 'Aparece en la línea de tiempo — clic para ocultarlo') + '">' +
-            (it.incluirLineaTiempo === false
-              ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 7 11 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
-              : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>') +
+        '<td><button type="button" class="pill-toggle requires-edit ' + (it.incluirLineaTiempo === false ? 'off' : 'on') + ' linea-toggle-btn" data-id="' + it.id + '">' +
+          (it.incluirLineaTiempo === false
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 7 11 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg> Oculto'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg> Visible') +
           '</button>' +
+          '<span class="pill-toggle-static ' + (it.incluirLineaTiempo === false ? 'off' : 'on') + '">' + (it.incluirLineaTiempo === false ? 'Oculto' : 'Visible') + '</span>' +
+        '</td>' +
+        '<td><div class="row-actions requires-edit">' +
           '<button class="icon-btn edit-btn" data-id="' + it.id + '" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
           '<button class="icon-btn danger del-btn" data-id="' + it.id + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
         '</div></td>' +
@@ -1288,7 +1450,8 @@
       items.push({
         id: "h:" + h.id, kind: "hito", area: h.area,
         nombre: "[" + (AREA_LABELS[h.area] || "Otro") + "] " + h.nombre, proyectoId: h.proyectoId,
-        fechaInicio: h.fecha, fechaVencimiento: h.fecha, estatus: h.estatus, notas: h.notas
+        fechaInicio: h.fechaInicio || h.fechaVencimiento, fechaVencimiento: h.fechaVencimiento || h.fechaInicio,
+        estatus: h.estatus, notas: h.notas
       });
     });
 
@@ -1419,6 +1582,10 @@
     renderStats(filtered);
     renderTable(filtered);
     renderTimeline(getTimelineItems());
+    populateHitoFiltroProyecto(state.hitoViewFilters.proyectoId);
+    renderHitosView();
+    populateHistFiltroProyecto(state.historialFilters.proyectoId);
+    renderHistorialView();
   }
 
   /* ---------------- Filters wiring ---------------- */
@@ -1589,6 +1756,8 @@
     document.getElementById("in-responsable").value = it ? (it.responsable || "") : "";
     document.getElementById("in-notas").value = it ? (it.notas || "") : "";
     document.getElementById("in-incluir-linea").checked = it ? it.incluirLineaTiempo !== false : true;
+    populateDependeSelect("in-depende", it ? ("t:" + it.id) : null);
+    document.getElementById("in-depende").value = it ? (it.dependeDe || "") : "";
     ["in-nombre", "in-proyecto", "in-vencimiento"].forEach(function (fid) { document.getElementById(fid).style.borderColor = ""; });
     setFormStatus(state.proyectos.length ? "" : "Primero registra un proyecto con el botón “Nuevo proyecto”.");
     document.getElementById("dlg-form-save").disabled = !state.proyectos.length;
@@ -1690,6 +1859,7 @@
       tiempoUnidad: document.getElementById("in-tiempo-unidad").value,
       responsable: document.getElementById("in-responsable").value.trim(),
       notas: document.getElementById("in-notas").value.trim(),
+      dependeDe: document.getElementById("in-depende").value || "",
       incluirLineaTiempo: document.getElementById("in-incluir-linea").checked
     };
     var saveBtn = document.getElementById("dlg-form-save");
@@ -1697,7 +1867,11 @@
     var req = state.editingTramiteId
       ? api("/api/tramites/" + state.editingTramiteId, { method: "PUT", body: JSON.stringify(payload) })
       : api("/api/tramites", { method: "POST", body: JSON.stringify(payload) });
-    req.then(function () { dlgForm.close(); return refreshAll(); })
+    req.then(function (result) { dlgForm.close(); return refreshAll().then(function () { return result; }); })
+      .then(function (result) {
+        var n = result && result.cascaded ? (result.cascaded.tramites || 0) + (result.cascaded.hitos || 0) : 0;
+        if (n > 0) showBanner("Se ajustaron automáticamente " + n + " actividad" + (n === 1 ? "" : "es") + " que dependían de esta.");
+      })
       .catch(function (err) { setFormStatus(err.message || "No se pudo guardar."); })
       .finally(function () { saveBtn.disabled = false; });
   });
@@ -1816,7 +1990,9 @@
     return {
       id: uid(), proyectoId: newProyectoId, nombre: String(h.nombre),
       area: HITO_AREAS.indexOf(h.area) !== -1 ? h.area : "otro",
-      fecha: h.fecha || "", estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(h.estatus) !== -1 ? h.estatus : "en_proceso",
+      fechaInicio: h.fechaInicio || "", fechaVencimiento: h.fechaVencimiento || h.fecha || "",
+      estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(h.estatus) !== -1 ? h.estatus : "en_proceso",
+      responsable: (h.responsable || "").toString(),
       notas: (h.notas || "").toString(),
       incluirLineaTiempo: h.incluirLineaTiempo === false ? false : true
     };
@@ -2061,6 +2237,14 @@
   /* ---------------- Hitos: otras áreas ---------------- */
   var dlgHitos = document.getElementById("dlg-hitos");
 
+  function dependeRefLabel(ref) {
+    if (!ref) return "";
+    var kind = ref.slice(0, 1), id = ref.slice(2);
+    if (kind === "t") { var t = getTramite(id); return t ? t.nombre : "(trámite eliminado)"; }
+    var h = state.hitos.find(function (x) { return x.id === id; });
+    return h ? h.nombre : "(hito eliminado)";
+  }
+
   function populateHitoProyectoSelect() {
     var el = document.getElementById("hito-proyecto");
     var sorted = proyectosSorted();
@@ -2076,87 +2260,303 @@
     }).join("");
     if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
   }
+  function populateDependeSelect(elId, selfRef) {
+    var el = document.getElementById(elId);
+    var opts = ['<option value="">Ninguno</option>'];
+    proyectosSorted().forEach(function (p) {
+      var tOpts = state.tramites.filter(function (t) { return t.proyectoId === p.id; })
+        .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); })
+        .map(function (t) {
+          var ref = "t:" + t.id;
+          if (ref === selfRef) return "";
+          return '<option value="' + ref + '">[Trámite] ' + escapeHtml(t.nombre) + ' — ' + escapeHtml(p.nombre) + '</option>';
+        }).join("");
+      var hOpts = state.hitos.filter(function (h) { return h.proyectoId === p.id; })
+        .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); })
+        .map(function (h) {
+          var ref = "h:" + h.id;
+          if (ref === selfRef) return "";
+          return '<option value="' + ref + '">[Hito] ' + escapeHtml(h.nombre) + ' — ' + escapeHtml(p.nombre) + '</option>';
+        }).join("");
+      opts.push(tOpts, hOpts);
+    });
+    el.innerHTML = opts.join("");
+  }
 
-  function renderHitosTable() {
-    var proyectoFiltro = document.getElementById("hito-filtro-proyecto").value;
-    var rows = state.hitos.slice();
-    if (proyectoFiltro) rows = rows.filter(function (h) { return h.proyectoId === proyectoFiltro; });
-    rows.sort(function (a, b) { return (b.fecha || "").localeCompare(a.fecha || ""); });
-
-    var tbody = document.getElementById("hitos-body");
-    document.getElementById("hitos-empty").style.display = rows.length ? "none" : "block";
-    tbody.innerHTML = rows.map(function (h) {
-      var st = computeState(h);
-      return '<tr>' +
-        '<td class="cell-date">' + fmtDate(h.fecha) + '</td>' +
-        '<td>' + escapeHtml(h.nombre) + (h.notas ? '<span class="sub-note">' + escapeHtml(h.notas) + '</span>' : '') + '</td>' +
-        '<td>' + escapeHtml(proyectoNombre(h)) + '</td>' +
-        '<td>' + (AREA_LABELS[h.area] || "Otro") + '</td>' +
-        '<td><span class="pill st-' + st + '"><span class="dot st-' + st + '"></span>' + STATE_LABEL[st] + '</span></td>' +
-        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-hito-btn" data-id="' + h.id + '" aria-label="Eliminar hito">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
-        '</button></div></td>' +
-      '</tr>';
-    }).join("");
-    tbody.querySelectorAll(".del-hito-btn").forEach(function (b) {
-      b.addEventListener("click", function () {
-        api("/api/hitos/" + b.dataset.id, { method: "DELETE" })
-          .then(function () { return refreshAll(); })
-          .then(function () { renderHitosTable(); })
-          .catch(function (err) { showBanner(err.message || "No se pudo eliminar el hito."); });
-      });
+  function getFilteredHitos() {
+    var f = state.hitoViewFilters;
+    return state.hitos.filter(function (h) {
+      if (f.proyectoId && h.proyectoId !== f.proyectoId) return false;
+      if (!f.areas[h.area]) return false;
+      return true;
     });
   }
 
-  document.getElementById("hito-filtro-proyecto").addEventListener("change", renderHitosTable);
+  function renderHitosView() {
+    var rows = getFilteredHitos().slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
+    document.getElementById("hitos-hint").textContent = rows.length + " hito" + (rows.length === 1 ? "" : "s");
+    var tbody = document.getElementById("hitos-table-body");
+    document.getElementById("hitos-empty-state").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (h) {
+      var st = computeState(h);
+      var dep = dependeRefLabel(h.dependeDe);
+      return '<tr>' +
+        '<td class="cell-tramite"><span class="t-name">' + escapeHtml(h.nombre) + '</span>' +
+          (h.notas ? '<span class="t-type">' + escapeHtml(h.notas) + '</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(proyectoNombre(h)) + '</td>' +
+        '<td>' + escapeHtml(proyectoCiudad(h)) + '</td>' +
+        '<td><span class="pill area-' + h.area + '">' + (AREA_LABELS[h.area] || "Otro") + '</span></td>' +
+        '<td><span class="pill st-' + st + '"><span class="dot st-' + st + '"></span>' + STATE_LABEL[st] + '</span></td>' +
+        '<td class="cell-date">' + fmtDate(h.fechaInicio) + '</td>' +
+        '<td class="cell-date">' + fmtDate(h.fechaVencimiento) + '</td>' +
+        '<td>' + escapeHtml(h.responsable || "—") + '</td>' +
+        '<td>' + (dep ? escapeHtml(dep) : '—') + '</td>' +
+        '<td><button type="button" class="pill-toggle requires-edit ' + (h.incluirLineaTiempo === false ? 'off' : 'on') + ' hito-linea-toggle-btn" data-id="' + h.id + '">' +
+          (h.incluirLineaTiempo === false
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 7 11 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg> Oculto'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg> Visible') +
+          '</button>' +
+          '<span class="pill-toggle-static ' + (h.incluirLineaTiempo === false ? 'off' : 'on') + '">' + (h.incluirLineaTiempo === false ? 'Oculto' : 'Visible') + '</span>' +
+        '</td>' +
+        '<td><div class="row-actions requires-edit">' +
+          '<button class="icon-btn edit-hito-btn" data-id="' + h.id + '" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
+          '<button class="icon-btn danger del-hito-btn" data-id="' + h.id + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join("");
+    document.querySelectorAll(".edit-hito-btn").forEach(function (b) { b.addEventListener("click", function () { openHitoForm(b.dataset.id); }); });
+    document.querySelectorAll(".del-hito-btn").forEach(function (b) { b.addEventListener("click", function () { openDeleteHito(b.dataset.id); }); });
+    document.querySelectorAll(".hito-linea-toggle-btn").forEach(function (b) { b.addEventListener("click", function () { toggleHitoLinea(b.dataset.id); }); });
+  }
 
-  document.getElementById("btn-hitos").addEventListener("click", function () {
-    populateHitoProyectoSelect();
-    document.getElementById("hito-area").value = "comercial";
-    document.getElementById("hito-nombre").value = "";
-    document.getElementById("hito-fecha").value = new Date().toISOString().slice(0, 10);
-    document.getElementById("hito-estatus").value = "en_proceso";
-    document.getElementById("hito-notas").value = "";
-    document.getElementById("hito-incluir-linea").checked = true;
-    document.getElementById("hito-form-status").style.visibility = "hidden";
-    populateHitoFiltroProyecto(state.filters.proyectoId);
-    renderHitosTable();
-    dlgHitos.showModal();
+  function toggleHitoLinea(id) {
+    var h = state.hitos.find(function (x) { return x.id === id; });
+    if (!h) return;
+    var payload = {
+      proyectoId: h.proyectoId, nombre: h.nombre, area: h.area,
+      fechaInicio: h.fechaInicio || "", fechaVencimiento: h.fechaVencimiento || "",
+      estatus: h.estatus, responsable: h.responsable || "", notas: h.notas || "",
+      dependeDe: h.dependeDe || "",
+      incluirLineaTiempo: h.incluirLineaTiempo === false
+    };
+    api("/api/hitos/" + id, { method: "PUT", body: JSON.stringify(payload) })
+      .then(function () { return refreshAll(); })
+      .catch(function (err) { showBanner(err.message || "No se pudo actualizar la línea de tiempo."); });
+  }
+
+  document.getElementById("hito-filtro-proyecto").addEventListener("change", function (e) {
+    state.hitoViewFilters.proyectoId = e.target.value;
+    renderHitosView();
   });
-  document.getElementById("dlg-hitos-close").addEventListener("click", function () { dlgHitos.close(); });
-  document.getElementById("dlg-hitos-done").addEventListener("click", function () { dlgHitos.close(); });
+  document.querySelectorAll('#view-hitos .area-filter input[data-hito-area]').forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      state.hitoViewFilters.areas[cb.dataset.hitoArea] = cb.checked;
+      renderHitosView();
+    });
+  });
 
-  document.getElementById("btn-hito-add").addEventListener("click", function () {
-    var status = document.getElementById("hito-form-status");
+  function setHitoFormStatus(msg, ok) {
+    var el = document.getElementById("hito-form-status");
+    el.textContent = msg || "";
+    el.className = "status-msg" + (ok ? " ok" : " err");
+    el.style.visibility = msg ? "visible" : "hidden";
+  }
+
+  function openHitoForm(id) {
+    state.editingHitoId = id || null;
+    var h = id ? state.hitos.find(function (x) { return x.id === id; }) : null;
+    document.getElementById("dlg-hitos-title").textContent = h ? "Editar hito" : "Nuevo hito";
+    populateHitoProyectoSelect();
+    document.getElementById("hito-proyecto").value = h ? h.proyectoId : (state.hitoViewFilters.proyectoId || "");
+    document.getElementById("hito-area").value = h ? h.area : "comercial";
+    document.getElementById("hito-nombre").value = h ? h.nombre : "";
+    document.getElementById("hito-inicio").value = h ? (h.fechaInicio || "") : "";
+    document.getElementById("hito-vencimiento").value = h ? (h.fechaVencimiento || "") : "";
+    document.getElementById("hito-estatus").value = h ? h.estatus : "en_proceso";
+    document.getElementById("hito-responsable").value = h ? (h.responsable || "") : "";
+    document.getElementById("hito-notas").value = h ? (h.notas || "") : "";
+    document.getElementById("hito-incluir-linea").checked = h ? h.incluirLineaTiempo !== false : true;
+    populateDependeSelect("hito-depende", h ? ("h:" + h.id) : null);
+    document.getElementById("hito-depende").value = h ? (h.dependeDe || "") : "";
+    setHitoFormStatus("");
+    dlgHitos.showModal();
+    document.getElementById("hito-nombre").focus();
+  }
+  document.getElementById("btn-add-hito").addEventListener("click", function () { openHitoForm(null); });
+  document.getElementById("dlg-hitos-close").addEventListener("click", function () { dlgHitos.close(); });
+  document.getElementById("dlg-hitos-close2").addEventListener("click", function () { dlgHitos.close(); });
+
+  document.getElementById("btn-hito-save").addEventListener("click", function () {
     var proyectoId = document.getElementById("hito-proyecto").value;
     var nombre = document.getElementById("hito-nombre").value.trim();
-    status.style.visibility = "visible";
     if (!proyectoId || !nombre) {
-      status.textContent = "Completa proyecto y nombre del hito.";
-      status.className = "status-msg err";
+      setHitoFormStatus("Completa proyecto y nombre del hito.", false);
       return;
     }
     var payload = {
       proyectoId: proyectoId, nombre: nombre,
       area: document.getElementById("hito-area").value,
-      fecha: document.getElementById("hito-fecha").value || "",
+      fechaInicio: document.getElementById("hito-inicio").value || "",
+      fechaVencimiento: document.getElementById("hito-vencimiento").value || "",
       estatus: document.getElementById("hito-estatus").value,
+      responsable: document.getElementById("hito-responsable").value.trim(),
       notas: document.getElementById("hito-notas").value.trim(),
+      dependeDe: document.getElementById("hito-depende").value || "",
       incluirLineaTiempo: document.getElementById("hito-incluir-linea").checked
     };
-    api("/api/hitos", { method: "POST", body: JSON.stringify(payload) })
-      .then(function () {
-        status.textContent = "Hito registrado.";
-        status.className = "status-msg ok";
-        document.getElementById("hito-nombre").value = "";
-        document.getElementById("hito-notas").value = "";
-        return refreshAll();
+    var req = state.editingHitoId
+      ? api("/api/hitos/" + state.editingHitoId, { method: "PUT", body: JSON.stringify(payload) })
+      : api("/api/hitos", { method: "POST", body: JSON.stringify(payload) });
+    req.then(function (result) {
+        dlgHitos.close();
+        return refreshAll().then(function () { return result; });
       })
-      .then(function () { renderHitosTable(); })
-      .catch(function (err) { status.textContent = err.message || "No se pudo registrar el hito."; status.className = "status-msg err"; });
+      .then(function (result) {
+        var n = result && result.cascaded ? (result.cascaded.tramites || 0) + (result.cascaded.hitos || 0) : 0;
+        if (n > 0) showBanner("Se ajustaron automáticamente " + n + " actividad" + (n === 1 ? "" : "es") + " que dependían de esta.");
+      })
+      .catch(function (err) { setHitoFormStatus(err.message || "No se pudo guardar el hito.", false); });
   });
 
-  /* ---------------- Menú lateral: Catálogos ---------------- */
+  var dlgDeleteHito = document.getElementById("dlg-delete-hito");
+  function openDeleteHito(id) {
+    state.deletingHitoId = id;
+    var h = state.hitos.find(function (x) { return x.id === id; });
+    document.getElementById("dlg-delete-hito-msg").innerHTML = "¿Eliminar el hito “<strong>" + escapeHtml(h ? h.nombre : "") + "</strong>”? Esta acción no se puede deshacer.";
+    dlgDeleteHito.showModal();
+  }
+  document.getElementById("dlg-delete-hito-close").addEventListener("click", function () { dlgDeleteHito.close(); });
+  document.getElementById("dlg-delete-hito-cancel").addEventListener("click", function () { dlgDeleteHito.close(); });
+  document.getElementById("dlg-delete-hito-confirm").addEventListener("click", function () {
+    api("/api/hitos/" + state.deletingHitoId, { method: "DELETE" })
+      .then(function () { dlgDeleteHito.close(); return refreshAll(); })
+      .catch(function (err) { dlgDeleteHito.close(); showBanner(err.message || "No se pudo eliminar el hito."); });
+  });
+
+  /* ---------------- Historial de fechas ---------------- */
+  var MOTIVO_LABEL = { manual: "Manual", cascada: "Automático (cascada)" };
+  var CAMPO_LABEL = { inicio: "Inicio", vencimiento: "Vencimiento" };
+
+  function populateHistFiltroProyecto(preselectId) {
+    var el = document.getElementById("hist-filtro-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Todos los proyectos</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + '</option>';
+    }).join("");
+    if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
+  }
+
+  function fmtDateTime(iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (isNaN(d)) return "—";
+    return d.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) +
+      " " + d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function getFilteredHistorialSummary() {
+    var f = state.historialFilters;
+    var byItem = {};
+    state.historialFechas.forEach(function (h) {
+      if (f.proyectoId && h.proyectoId !== f.proyectoId) return;
+      if (f.tipo && h.tipo !== f.tipo) return;
+      if (f.nombre && (h.itemNombre || "").toLowerCase().indexOf(f.nombre.toLowerCase()) === -1) return;
+      var key = h.tipo + ":" + h.itemId;
+      if (!byItem[key]) byItem[key] = { tipo: h.tipo, itemId: h.itemId, itemNombre: h.itemNombre, proyectoId: h.proyectoId, entradas: [] };
+      byItem[key].entradas.push(h);
+    });
+    var proyectos = state.proyectos;
+    function proyectoNombreById(id) { var p = proyectos.find(function (x) { return x.id === id; }); return p ? p.nombre : "—"; }
+
+    return Object.keys(byItem).map(function (key) {
+      var g = byItem[key];
+      // Orden cronológico (los registros vienen del server en DESC, aquí los reordenamos ASC para calcular "original -> actual").
+      var vencEntradas = g.entradas.filter(function (e) { return e.campo === "vencimiento"; }).slice().sort(function (a, b) { return new Date(a.fecha) - new Date(b.fecha); });
+      var fechaOriginal = vencEntradas.length ? vencEntradas[0].fechaAnterior : null;
+      var fechaActual = vencEntradas.length ? vencEntradas[vencEntradas.length - 1].fechaNueva : null;
+      var diffDias = null;
+      if (fechaOriginal && fechaActual) {
+        diffDias = Math.round((new Date(fechaActual) - new Date(fechaOriginal)) / 86400000);
+      }
+      return {
+        tipo: g.tipo, itemId: g.itemId, itemNombre: g.itemNombre,
+        proyectoNombre: proyectoNombreById(g.proyectoId),
+        numCambios: g.entradas.length,
+        fechaOriginal: fechaOriginal, fechaActual: fechaActual, diffDias: diffDias,
+        entradas: g.entradas.slice().sort(function (a, b) { return new Date(b.fecha) - new Date(a.fecha); })
+      };
+    }).sort(function (a, b) { return b.numCambios - a.numCambios; });
+  }
+
+  function renderHistorialView() {
+    var rows = getFilteredHistorialSummary();
+    document.getElementById("historial-hint").textContent = rows.length + " actividad" + (rows.length === 1 ? "" : "es") + " con cambios de fecha";
+    document.getElementById("historial-empty-state").style.display = rows.length ? "none" : "block";
+    var tbody = document.getElementById("historial-table-body");
+    tbody.innerHTML = rows.map(function (r) {
+      var diffTxt = "—";
+      if (r.diffDias != null && r.diffDias !== 0) diffTxt = (r.diffDias > 0 ? "+" : "") + r.diffDias + " día" + (Math.abs(r.diffDias) === 1 ? "" : "s");
+      else if (r.diffDias === 0) diffTxt = "Sin cambio neto";
+      return '<tr>' +
+        '<td class="cell-tramite"><span class="t-name">' + escapeHtml(r.itemNombre || "(sin nombre)") + '</span></td>' +
+        '<td>' + escapeHtml(r.proyectoNombre) + '</td>' +
+        '<td>' + (r.tipo === "hito" ? "Otras áreas" : "Trámite") + '</td>' +
+        '<td>' + r.numCambios + '</td>' +
+        '<td class="cell-date">' + fmtDate(r.fechaOriginal) + '</td>' +
+        '<td class="cell-date">' + fmtDate(r.fechaActual) + '</td>' +
+        '<td>' + diffTxt + '</td>' +
+        '<td><button type="button" class="btn btn-sm ver-hist-btn" data-tipo="' + r.tipo + '" data-id="' + r.itemId + '">Ver detalle</button></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".ver-hist-btn").forEach(function (b) {
+      b.addEventListener("click", function () { openHistorialDetalle(b.dataset.tipo, b.dataset.id); });
+    });
+  }
+
+  var dlgHistorial = document.getElementById("dlg-historial-detalle");
+  function openHistorialDetalle(tipo, itemId) {
+    var entradas = state.historialFechas.filter(function (h) { return h.tipo === tipo && h.itemId === itemId; })
+      .slice().sort(function (a, b) { return new Date(b.fecha) - new Date(a.fecha); });
+    var nombre = entradas.length ? entradas[0].itemNombre : "";
+    document.getElementById("dlg-historial-title").textContent = "Historial de cambios — " + (nombre || "");
+    document.getElementById("dlg-historial-body").innerHTML = entradas.map(function (e) {
+      return '<tr>' +
+        '<td>' + (CAMPO_LABEL[e.campo] || e.campo) + '</td>' +
+        '<td class="cell-date">' + fmtDate(e.fechaAnterior) + '</td>' +
+        '<td class="cell-date">' + fmtDate(e.fechaNueva) + '</td>' +
+        '<td>' + (MOTIVO_LABEL[e.motivo] || e.motivo) + '</td>' +
+        '<td>' + fmtDateTime(e.fecha) + '</td>' +
+      '</tr>';
+    }).join("");
+    dlgHistorial.showModal();
+  }
+  document.getElementById("dlg-historial-close").addEventListener("click", function () { dlgHistorial.close(); });
+  document.getElementById("dlg-historial-close2").addEventListener("click", function () { dlgHistorial.close(); });
+
+  document.getElementById("hist-filtro-proyecto").addEventListener("change", function (e) {
+    state.historialFilters.proyectoId = e.target.value;
+    renderHistorialView();
+  });
+  document.getElementById("hist-filtro-tipo").addEventListener("change", function (e) {
+    state.historialFilters.tipo = e.target.value;
+    renderHistorialView();
+  });
+  document.getElementById("hist-filtro-nombre").addEventListener("input", function (e) {
+    state.historialFilters.nombre = e.target.value;
+    renderHistorialView();
+  });
+
+  /* ---------------- Menú lateral: vistas y Catálogos ---------------- */
+  function showView(name) {
+    document.getElementById("view-tramites").style.display = name === "tramites" ? "" : "none";
+    document.getElementById("view-hitos").style.display = name === "hitos" ? "" : "none";
+    document.getElementById("view-historial").style.display = name === "historial" ? "" : "none";
+    document.getElementById("nav-tramites").classList.toggle("active", name === "tramites");
+    document.getElementById("nav-hitos").classList.toggle("active", name === "hitos");
+    document.getElementById("nav-historial").classList.toggle("active", name === "historial");
+    if (name === "historial") { populateHistFiltroProyecto(state.historialFilters.proyectoId); renderHistorialView(); }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   document.getElementById("nav-catalogos-toggle").addEventListener("click", function () {
     var sub = document.getElementById("nav-catalogos-sub");
     var expanded = sub.style.display !== "none";
@@ -2166,7 +2566,17 @@
   document.getElementById("nav-tramites").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    showView("tramites");
+  });
+  document.getElementById("nav-hitos").addEventListener("click", function () {
+    document.getElementById("dlg-catalogo-tramites").close();
+    document.getElementById("dlg-proveedores").close();
+    showView("hitos");
+  });
+  document.getElementById("nav-historial").addEventListener("click", function () {
+    document.getElementById("dlg-catalogo-tramites").close();
+    document.getElementById("dlg-proveedores").close();
+    showView("historial");
   });
   document.getElementById("cat-nav-proyectos").addEventListener("click", function () { openProyectoForm(null); });
   document.getElementById("cat-nav-tramites").addEventListener("click", function () { openCatalogoTramites(); });

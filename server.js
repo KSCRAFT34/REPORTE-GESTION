@@ -86,6 +86,9 @@ async function initDb() {
     );
   `);
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS incluir_linea_tiempo BOOLEAN NOT NULL DEFAULT true;`);
+  // "Depende de": referencia genérica a otro trámite u hito ("t:<id>" o "h:<id>"),
+  // para poder recorrer en cadena las fechas de los que dependen de él cuando se atrasa.
+  await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS depende_de TEXT;`);
   // Migración para bases de datos creadas antes de que los pagos pudieran
   // capturarse por proyecto (pago "de paquete") o llevar un concepto (Gestor/DRO/otro).
   await pool.query(`ALTER TABLE pagos ALTER COLUMN tramite_id DROP NOT NULL;`);
@@ -117,6 +120,12 @@ async function initDb() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  // Migración: los hitos ahora se capturan con rango de fechas (inicio y
+  // vencimiento, igual que un trámite) y un responsable, no solo una fecha suelta.
+  // La columna "fecha" que ya existía se reutiliza como fecha de vencimiento.
+  await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS fecha_inicio DATE;`);
+  await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS responsable TEXT DEFAULT '';`);
+  await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS depende_de TEXT;`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS catalogo_tramites (
       id TEXT PRIMARY KEY,
@@ -139,6 +148,26 @@ async function initDb() {
       notas TEXT DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
+  // Historial de cambios de fecha: cada vez que se mueve la fecha de inicio o
+  // vencimiento de un trámite u hito (a mano, o automáticamente por cascada de
+  // dependencias) se guarda un registro aquí. La línea de tiempo principal
+  // siempre muestra solo la fecha vigente; este historial es un reporte aparte
+  // para ver cuántas veces se ha movido una actividad y cuánto en total.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS fecha_historial (
+      id TEXT PRIMARY KEY,
+      tipo TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      item_nombre TEXT DEFAULT '',
+      proyecto_id TEXT,
+      campo TEXT NOT NULL,
+      fecha_anterior DATE,
+      fecha_nueva DATE,
+      motivo TEXT NOT NULL DEFAULT 'manual',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
 
@@ -211,6 +240,20 @@ function proyectoRowToItem(row) {
 function catalogoTramiteRowToItem(row) {
   return { id: row.id, nombre: row.nombre, dependencia: row.dependencia || "", ciudad: row.ciudad || "" };
 }
+function historialFechaRowToItem(row) {
+  return {
+    id: row.id,
+    tipo: row.tipo,
+    itemId: row.item_id,
+    itemNombre: row.item_nombre || "",
+    proyectoId: row.proyecto_id || null,
+    campo: row.campo,
+    fechaAnterior: dateStr(row.fecha_anterior),
+    fechaNueva: dateStr(row.fecha_nueva),
+    motivo: row.motivo || "manual",
+    fecha: row.created_at ? new Date(row.created_at).toISOString() : null
+  };
+}
 function proveedorRowToItem(row) {
   return {
     id: row.id, nombre: row.nombre, tipo: row.tipo || "", ciudad: row.ciudad || "",
@@ -234,7 +277,8 @@ function tramiteRowToItem(row) {
     tiempoUnidad: row.tiempo_unidad || "dias",
     responsable: row.responsable || "",
     notas: row.notas || "",
-    incluirLineaTiempo: row.incluir_linea_tiempo !== false
+    incluirLineaTiempo: row.incluir_linea_tiempo !== false,
+    dependeDe: row.depende_de || null
   };
 }
 function pagoRowToItem(row) {
@@ -254,8 +298,11 @@ function subelementoRowToItem(row) {
 function hitoRowToItem(row) {
   return {
     id: row.id, proyectoId: row.proyecto_id, nombre: row.nombre, area: row.area,
-    fecha: dateStr(row.fecha) || "", estatus: row.estatus, notas: row.notas || "",
-    incluirLineaTiempo: row.incluir_linea_tiempo !== false
+    fechaInicio: dateStr(row.fecha_inicio) || "",
+    fechaVencimiento: dateStr(row.fecha) || "",
+    estatus: row.estatus, responsable: row.responsable || "", notas: row.notas || "",
+    incluirLineaTiempo: row.incluir_linea_tiempo !== false,
+    dependeDe: row.depende_de || null
   };
 }
 
@@ -291,7 +338,17 @@ function sanitizeProveedor(body) {
   };
 }
 
-function sanitizeTramite(body) {
+// Valida una referencia "depende de" con forma "t:<id>" o "h:<id>" (trámite o hito).
+// selfRef (p. ej. "t:<esteId>") se rechaza para no permitir que algo dependa de sí mismo.
+function sanitizeDependeDe(value, selfRef) {
+  const v = String(value || "").trim();
+  if (!v) return null;
+  if (!/^[th]:.+/.test(v)) return null;
+  if (selfRef && v === selfRef) return null;
+  return v;
+}
+
+function sanitizeTramite(body, selfId) {
   const nombre = String((body && body.nombre) || "").trim();
   const proyectoId = String((body && body.proyectoId) || "").trim();
   const fechaVencimiento = body && body.fechaVencimiento ? String(body.fechaVencimiento).slice(0, 10) : null;
@@ -312,7 +369,8 @@ function sanitizeTramite(body) {
     tiempoUnidad: DURATION_UNITS.includes(body.tiempoUnidad) ? body.tiempoUnidad : "dias",
     responsable: String(body.responsable || "").trim(),
     notas: String(body.notas || "").trim(),
-    incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true
+    incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true,
+    dependeDe: sanitizeDependeDe(body.dependeDe, selfId ? "t:" + selfId : null)
   };
 }
 
@@ -348,7 +406,7 @@ function sanitizeSubelemento(body) {
   };
 }
 
-function sanitizeHito(body) {
+function sanitizeHito(body, selfId) {
   const proyectoId = String((body && body.proyectoId) || "").trim();
   const nombre = String((body && body.nombre) || "").trim();
   if (!proyectoId || !nombre) return null;
@@ -356,11 +414,94 @@ function sanitizeHito(body) {
   const estatus = ESTATUS_VALIDOS.includes(body.estatus) ? body.estatus : "en_proceso";
   return {
     proyectoId, nombre, area,
-    fecha: body.fecha ? String(body.fecha).slice(0, 10) : null,
+    fechaInicio: body.fechaInicio ? String(body.fechaInicio).slice(0, 10) : null,
+    fechaVencimiento: body.fechaVencimiento ? String(body.fechaVencimiento).slice(0, 10) : null,
     estatus,
+    responsable: String((body && body.responsable) || "").trim(),
     notas: String((body && body.notas) || "").trim(),
-    incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true
+    incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true,
+    dependeDe: sanitizeDependeDe(body.dependeDe, selfId ? "h:" + selfId : null)
   };
+}
+
+/* ================================================================
+   Historial de cambios de fecha: cada movimiento (manual o por cascada)
+   de la fecha de inicio o vencimiento de un trámite/hito se registra
+   aquí, para el reporte aparte de "Historial de fechas".
+   ================================================================ */
+function shiftDateStr(v, deltaDays) {
+  if (!v) return null;
+  const base = new Date(v);
+  if (isNaN(base.getTime())) return null;
+  base.setUTCDate(base.getUTCDate() + deltaDays);
+  return dateStr(base);
+}
+
+async function logFechaChange(client, { tipo, itemId, itemNombre, proyectoId, campo, fechaAnterior, fechaNueva, motivo }) {
+  const before = dateStr(fechaAnterior);
+  const after = dateStr(fechaNueva);
+  if (before === after) return; // sin cambio real, no se registra
+  await client.query(
+    `INSERT INTO fecha_historial (id, tipo, item_id, item_nombre, proyecto_id, campo, fecha_anterior, fecha_nueva, motivo)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    [crypto.randomUUID(), tipo, itemId, itemNombre || "", proyectoId || null, campo, before, after, motivo || "manual"]
+  );
+}
+
+/* ================================================================
+   Cadena de dependencias: si la fecha de vencimiento de un trámite u
+   hito se recorre, todo lo que "depende de" él se recorre lo mismo
+   (y así en cadena con lo que depende de esos, evitando ciclos).
+   Cada recorrido automático también queda anotado en el historial.
+   ================================================================ */
+async function cascadeShift(client, originRef, deltaDays, visited) {
+  const result = { tramites: 0, hitos: 0 };
+  if (!deltaDays) return result;
+  visited = visited || new Set();
+  if (visited.has(originRef)) return result;
+  visited.add(originRef);
+
+  const tRows = await client.query(
+    "SELECT id, nombre, proyecto_id, fecha_inicio, fecha_vencimiento FROM tramites WHERE depende_de = $1",
+    [originRef]
+  );
+  for (const row of tRows.rows) {
+    const ref = "t:" + row.id;
+    if (visited.has(ref)) continue;
+    const nuevoInicio = shiftDateStr(row.fecha_inicio, deltaDays);
+    const nuevoVencimiento = shiftDateStr(row.fecha_vencimiento, deltaDays);
+    await client.query(
+      `UPDATE tramites SET fecha_inicio = $1, fecha_vencimiento = $2, updated_at = now() WHERE id = $3`,
+      [nuevoInicio, nuevoVencimiento, row.id]
+    );
+    await logFechaChange(client, { tipo: "tramite", itemId: row.id, itemNombre: row.nombre, proyectoId: row.proyecto_id, campo: "inicio", fechaAnterior: row.fecha_inicio, fechaNueva: nuevoInicio, motivo: "cascada" });
+    await logFechaChange(client, { tipo: "tramite", itemId: row.id, itemNombre: row.nombre, proyectoId: row.proyecto_id, campo: "vencimiento", fechaAnterior: row.fecha_vencimiento, fechaNueva: nuevoVencimiento, motivo: "cascada" });
+    result.tramites++;
+    const sub = await cascadeShift(client, ref, deltaDays, visited);
+    result.tramites += sub.tramites; result.hitos += sub.hitos;
+  }
+
+  const hRows = await client.query(
+    "SELECT id, nombre, proyecto_id, fecha_inicio, fecha FROM hitos WHERE depende_de = $1",
+    [originRef]
+  );
+  for (const row of hRows.rows) {
+    const ref = "h:" + row.id;
+    if (visited.has(ref)) continue;
+    const nuevoInicio = shiftDateStr(row.fecha_inicio, deltaDays);
+    const nuevoVencimiento = shiftDateStr(row.fecha, deltaDays);
+    await client.query(
+      `UPDATE hitos SET fecha_inicio = $1, fecha = $2, updated_at = now() WHERE id = $3`,
+      [nuevoInicio, nuevoVencimiento, row.id]
+    );
+    await logFechaChange(client, { tipo: "hito", itemId: row.id, itemNombre: row.nombre, proyectoId: row.proyecto_id, campo: "inicio", fechaAnterior: row.fecha_inicio, fechaNueva: nuevoInicio, motivo: "cascada" });
+    await logFechaChange(client, { tipo: "hito", itemId: row.id, itemNombre: row.nombre, proyectoId: row.proyecto_id, campo: "vencimiento", fechaAnterior: row.fecha, fechaNueva: nuevoVencimiento, motivo: "cascada" });
+    result.hitos++;
+    const sub = await cascadeShift(client, ref, deltaDays, visited);
+    result.tramites += sub.tramites; result.hitos += sub.hitos;
+  }
+
+  return result;
 }
 
 /* ================================================================
@@ -426,14 +567,15 @@ app.get("/", requireAuth, (req, res) => {
 /* ---------------- Lectura de todo el dataset ---------------- */
 app.get("/api/data", requireAuth, async (req, res) => {
   try {
-    const [proyectos, tramites, pagos, subelementos, hitos, catalogoTramites, proveedores] = await Promise.all([
+    const [proyectos, tramites, pagos, subelementos, hitos, catalogoTramites, proveedores, historialFechas] = await Promise.all([
       pool.query("SELECT * FROM proyectos ORDER BY nombre ASC"),
       pool.query("SELECT * FROM tramites ORDER BY fecha_vencimiento ASC NULLS LAST"),
       pool.query("SELECT * FROM pagos ORDER BY fecha DESC NULLS LAST"),
       pool.query("SELECT * FROM subelementos ORDER BY fecha ASC NULLS LAST"),
       pool.query("SELECT * FROM hitos ORDER BY fecha ASC NULLS LAST"),
       pool.query("SELECT * FROM catalogo_tramites ORDER BY nombre ASC"),
-      pool.query("SELECT * FROM proveedores ORDER BY nombre ASC")
+      pool.query("SELECT * FROM proveedores ORDER BY nombre ASC"),
+      pool.query("SELECT * FROM fecha_historial ORDER BY created_at DESC LIMIT 3000")
     ]);
     res.json({
       proyectos: proyectos.rows.map(proyectoRowToItem),
@@ -442,7 +584,8 @@ app.get("/api/data", requireAuth, async (req, res) => {
       subelementos: subelementos.rows.map(subelementoRowToItem),
       hitos: hitos.rows.map(hitoRowToItem),
       catalogoTramites: catalogoTramites.rows.map(catalogoTramiteRowToItem),
-      proveedores: proveedores.rows.map(proveedorRowToItem)
+      proveedores: proveedores.rows.map(proveedorRowToItem),
+      historialFechas: historialFechas.rows.map(historialFechaRowToItem)
     });
   } catch (err) {
     console.error(err);
@@ -505,11 +648,11 @@ app.post("/api/tramites", requireEditor, async (req, res) => {
   try {
     const result = await pool.query(
       `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, estatus,
-        fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+        fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo, depende_de)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [id, data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
-        data.responsable, data.notas, data.incluirLineaTiempo]
+        data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe]
     );
     res.status(201).json(tramiteRowToItem(result.rows[0]));
   } catch (err) {
@@ -520,23 +663,43 @@ app.post("/api/tramites", requireEditor, async (req, res) => {
 });
 
 app.put("/api/tramites/:id", requireEditor, async (req, res) => {
-  const data = sanitizeTramite(req.body || {});
+  const data = sanitizeTramite(req.body || {}, req.params.id);
   if (!data) return res.status(400).json({ error: "Faltan campos obligatorios (trámite, proyecto, vencimiento)." });
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query("BEGIN");
+    const prevRes = await client.query("SELECT fecha_inicio, fecha_vencimiento FROM tramites WHERE id=$1 FOR UPDATE", [req.params.id]);
+    if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Trámite no encontrado." }); }
+    const prevInicio = dateStr(prevRes.rows[0].fecha_inicio);
+    const prevFecha = dateStr(prevRes.rows[0].fecha_vencimiento);
+
+    const result = await client.query(
       `UPDATE tramites SET proyecto_id=$1, nombre=$2, presupuesto=$3, costo_gestion=$4, costo_derechos=$5,
         estatus=$6, fecha_inicio=$7, fecha_vencimiento=$8, fecha_conclusion_real=$9, tiempo_valor=$10,
-        tiempo_unidad=$11, responsable=$12, notas=$13, incluir_linea_tiempo=$14, updated_at=now() WHERE id=$15 RETURNING *`,
+        tiempo_unidad=$11, responsable=$12, notas=$13, incluir_linea_tiempo=$14, depende_de=$15, updated_at=now() WHERE id=$16 RETURNING *`,
       [data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
-        data.responsable, data.notas, data.incluirLineaTiempo, req.params.id]
+        data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
     );
-    if (!result.rows.length) return res.status(404).json({ error: "Trámite no encontrado." });
-    res.json(tramiteRowToItem(result.rows[0]));
+
+    await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "inicio", fechaAnterior: prevInicio, fechaNueva: data.fechaInicio, motivo: "manual" });
+    await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "vencimiento", fechaAnterior: prevFecha, fechaNueva: data.fechaVencimiento, motivo: "manual" });
+
+    let cascaded = { tramites: 0, hitos: 0 };
+    if (prevFecha && data.fechaVencimiento) {
+      const deltaDays = Math.round((new Date(data.fechaVencimiento) - new Date(prevFecha)) / 86400000);
+      if (deltaDays) cascaded = await cascadeShift(client, "t:" + req.params.id, deltaDays);
+    }
+
+    await client.query("COMMIT");
+    res.json(Object.assign(tramiteRowToItem(result.rows[0]), { cascaded }));
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error(err);
     if (err.code === "23503") return res.status(400).json({ error: "El proyecto seleccionado no existe." });
     res.status(500).json({ error: "No se pudo actualizar el trámite." });
+  } finally {
+    client.release();
   }
 });
 
@@ -630,8 +793,9 @@ app.post("/api/hitos", requireEditor, async (req, res) => {
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
-      "INSERT INTO hitos (id, proyecto_id, nombre, area, fecha, estatus, notas, incluir_linea_tiempo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
-      [id, data.proyectoId, data.nombre, data.area, data.fecha, data.estatus, data.notas, data.incluirLineaTiempo]
+      `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, incluir_linea_tiempo, depende_de)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [id, data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe]
     );
     res.status(201).json(hitoRowToItem(result.rows[0]));
   } catch (err) {
@@ -642,19 +806,39 @@ app.post("/api/hitos", requireEditor, async (req, res) => {
 });
 
 app.put("/api/hitos/:id", requireEditor, async (req, res) => {
-  const data = sanitizeHito(req.body || {});
+  const data = sanitizeHito(req.body || {}, req.params.id);
   if (!data) return res.status(400).json({ error: "Completa el proyecto y el nombre del hito." });
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      `UPDATE hitos SET proyecto_id=$1, nombre=$2, area=$3, fecha=$4, estatus=$5, notas=$6, incluir_linea_tiempo=$7, updated_at=now()
-       WHERE id=$8 RETURNING *`,
-      [data.proyectoId, data.nombre, data.area, data.fecha, data.estatus, data.notas, data.incluirLineaTiempo, req.params.id]
+    await client.query("BEGIN");
+    const prevRes = await client.query("SELECT fecha_inicio, fecha FROM hitos WHERE id=$1 FOR UPDATE", [req.params.id]);
+    if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Hito no encontrado." }); }
+    const prevInicio = dateStr(prevRes.rows[0].fecha_inicio);
+    const prevFecha = dateStr(prevRes.rows[0].fecha);
+
+    const result = await client.query(
+      `UPDATE hitos SET proyecto_id=$1, nombre=$2, area=$3, fecha_inicio=$4, fecha=$5, estatus=$6, responsable=$7, notas=$8, incluir_linea_tiempo=$9, depende_de=$10, updated_at=now()
+       WHERE id=$11 RETURNING *`,
+      [data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
     );
-    if (!result.rows.length) return res.status(404).json({ error: "Hito no encontrado." });
-    res.json(hitoRowToItem(result.rows[0]));
+
+    await logFechaChange(client, { tipo: "hito", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "inicio", fechaAnterior: prevInicio, fechaNueva: data.fechaInicio, motivo: "manual" });
+    await logFechaChange(client, { tipo: "hito", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "vencimiento", fechaAnterior: prevFecha, fechaNueva: data.fechaVencimiento, motivo: "manual" });
+
+    let cascaded = { tramites: 0, hitos: 0 };
+    if (prevFecha && data.fechaVencimiento) {
+      const deltaDays = Math.round((new Date(data.fechaVencimiento) - new Date(prevFecha)) / 86400000);
+      if (deltaDays) cascaded = await cascadeShift(client, "h:" + req.params.id, deltaDays);
+    }
+
+    await client.query("COMMIT");
+    res.json(Object.assign(hitoRowToItem(result.rows[0]), { cascaded }));
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error(err);
     res.status(500).json({ error: "No se pudo actualizar el hito." });
+  } finally {
+    client.release();
   }
 });
 
@@ -781,7 +965,8 @@ app.post("/api/import", requireEditor, async (req, res) => {
   incomingTramites.forEach((t) => {
     const mappedProyectoId = proyIdMap[t && t.proyectoId];
     if (!mappedProyectoId) return;
-    const data = sanitizeTramite(Object.assign({}, t, { proyectoId: mappedProyectoId }));
+    // dependeDe se descarta al importar: haría referencia a ids viejos que ya no existen.
+    const data = sanitizeTramite(Object.assign({}, t, { proyectoId: mappedProyectoId, dependeDe: null }));
     if (!data) return;
     const newId = crypto.randomUUID();
     if (t.id != null) tramiteIdMap[t.id] = newId;
@@ -812,7 +997,7 @@ app.post("/api/import", requireEditor, async (req, res) => {
     .map((h) => {
       const mappedProyectoId = proyIdMap[h && h.proyectoId];
       if (!mappedProyectoId) return null;
-      const data = sanitizeHito(Object.assign({}, h, { proyectoId: mappedProyectoId }));
+      const data = sanitizeHito(Object.assign({}, h, { proyectoId: mappedProyectoId, dependeDe: null }));
       return data ? Object.assign({ id: crypto.randomUUID() }, data) : null;
     })
     .filter(Boolean);
@@ -857,8 +1042,9 @@ app.post("/api/import", requireEditor, async (req, res) => {
     }
     for (const h of cleanHitos) {
       await client.query(
-        "INSERT INTO hitos (id, proyecto_id, nombre, area, fecha, estatus, notas, incluir_linea_tiempo) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
-        [h.id, h.proyectoId, h.nombre, h.area, h.fecha, h.estatus, h.notas, h.incluirLineaTiempo]
+        `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [h.id, h.proyectoId, h.nombre, h.area, h.fechaInicio, h.fechaVencimiento, h.estatus, h.responsable, h.notas, h.incluirLineaTiempo]
       );
     }
     await client.query("COMMIT");
