@@ -1476,36 +1476,51 @@
     });
     var groupNames = AREA_ORDER.filter(function (a) { return groups[a] && groups[a].length; });
 
-    var allDates = [];
+    // Eje "comprimido": solo se muestran los meses en los que de verdad hubo
+    // actividad (algún trámite/hito en curso ese mes) — los meses vacíos de
+    // por medio se eliminan para que años con huecos largos (p. ej. 2023-2024
+    // con poco movimiento) no estiren la línea de tiempo hasta hacerla ilegible.
+    function monthKey(d) { return d.getFullYear() + "-" + d.getMonth(); }
+    function monthStart(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+    function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
+    var activeMonthMap = {};
+    function markMonths(s, e) {
+      if (!s) return;
+      e = e || s;
+      if (e < s) { var tmp = s; s = e; e = tmp; }
+      var cur = monthStart(s), end = monthStart(e);
+      var guard = 0;
+      while (cur <= end && guard < 1200) {
+        activeMonthMap[monthKey(cur)] = new Date(cur);
+        cur.setMonth(cur.getMonth() + 1);
+        guard++;
+      }
+    }
     filtered.forEach(function (it) {
       var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
       var e = parseDate(it.fechaVencimiento) || s;
-      if (s) allDates.push(s);
-      if (e) allDates.push(e);
+      markMonths(s, e);
     });
-    allDates.push(todayMid);
-    var minDate = new Date(Math.min.apply(null, allDates));
-    var maxDate = new Date(Math.max.apply(null, allDates));
-    minDate.setDate(minDate.getDate() - 10);
-    maxDate.setDate(maxDate.getDate() + 10);
-    minDate.setDate(1);
-    var totalDays = Math.max(30, Math.round((maxDate - minDate) / MS_DAY));
-    var pxPerDay = Math.max(3.2, Math.min(9, 1500 / totalDays));
-    var trackWidth = Math.round(totalDays * pxPerDay);
+    markMonths(todayMid, todayMid);
+    var activeMonths = Object.keys(activeMonthMap).map(function (k) { return activeMonthMap[k]; }).sort(function (a, b) { return a - b; });
+    var monthIndex = {};
+    activeMonths.forEach(function (m, i) { monthIndex[monthKey(m)] = i; });
     var LABEL_W = 230;
+    var MONTH_W = Math.max(60, Math.min(140, Math.round(1500 / Math.max(1, activeMonths.length))));
+    var trackWidth = Math.max(MONTH_W, activeMonths.length * MONTH_W);
 
-    function xFor(date) { return Math.round((date - minDate) / MS_DAY * pxPerDay); }
-
-    var ticks = [];
-    var cur = new Date(minDate);
-    while (cur <= maxDate) {
-      ticks.push(new Date(cur));
-      cur.setMonth(cur.getMonth() + 1);
+    function xFor(date) {
+      if (!date) return 0;
+      var idx = monthIndex[monthKey(date)];
+      if (idx === undefined) idx = date < activeMonths[0] ? 0 : activeMonths.length - 1;
+      var frac = (date.getDate() - 1) / daysInMonth(date);
+      return Math.round(idx * MONTH_W + frac * MONTH_W);
     }
+
     var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
-      ticks.map(function (t) {
-        return '<div class="tl-axis-tick" style="left:' + xFor(t) + 'px"><span>' +
-          t.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }) + '</span></div>';
+      activeMonths.map(function (m, i) {
+        return '<div class="tl-axis-tick" style="left:' + (i * MONTH_W) + 'px"><span>' +
+          m.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }) + '</span></div>';
       }).join("") + '</div>';
 
     var groupsHtml = groupNames.map(function (gName) {
@@ -1519,7 +1534,7 @@
         var left = xFor(s);
         var width = Math.max(6, xFor(e) - left);
         var sub = it.responsable ? it.responsable : "Sin responsable";
-        return '<div class="tl-row">' +
+        return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px">' +
           '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + '<span class="tl-sub">' + escapeHtml(sub) + '</span></div>' +
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
@@ -1528,7 +1543,7 @@
         '</div>';
       }).join("");
       var costSuffix = gName === "tramites" ? (' · ' + fmtMoney.format(totalCost)) : "";
-      return '<div class="tl-group">' +
+      return '<div class="tl-group" style="width:' + (LABEL_W + trackWidth) + 'px">' +
         '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[gName] || "Otro") + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + costSuffix + '</span></div>' +
         rowsHtml +
       '</div>';
