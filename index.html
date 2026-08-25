@@ -15,11 +15,15 @@
     <div class="sidenav-brand">CRAFT</div>
     <button type="button" class="sidenav-item active" id="nav-tramites">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h6"/><path d="M4 4h16v16H4z"/></svg>
-      Trámites
+      Dashboard
     </button>
     <button type="button" class="sidenav-item" id="nav-hitos">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M8 14h2M8 18h6"/></svg>
-      Otras áreas
+      Áreas
+    </button>
+    <button type="button" class="sidenav-item" id="nav-timeline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="11" y2="18"/></svg>
+      Líneas de tiempo
     </button>
     <button type="button" class="sidenav-item" id="nav-historial">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
@@ -200,37 +204,6 @@
 
     <div class="panel-head">
       <div>
-        <h2>Línea de tiempo</h2>
-        <div class="hint">Barras por vigencia; agrupadas por proyecto o ciudad</div>
-      </div>
-      <div class="segmented" id="group-toggle">
-        <button data-group="proyecto" class="active">Por proyecto</button>
-        <button data-group="ciudad">Por ciudad</button>
-      </div>
-    </div>
-    <div class="area-filter" id="area-filter">
-      <span class="area-filter-label">Mostrar:</span>
-      <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
-      <label><input type="checkbox" data-area="comercial" checked> Comercial</label>
-      <label><input type="checkbox" data-area="obra" checked> Obra</label>
-      <label><input type="checkbox" data-area="due_diligence" checked> Due diligence</label>
-      <label><input type="checkbox" data-area="otro" checked> Otro</label>
-    </div>
-    <div class="legend">
-      <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
-      <span class="legend-item"><span class="dot" style="background:var(--warning-dot)"></span>Por vencer (≤30 días)</span>
-      <span class="legend-item"><span class="dot" style="background:var(--serious)"></span>Urgente (≤15 días)</span>
-      <span class="legend-item"><span class="dot" style="background:var(--critical)"></span>Vencido</span>
-      <span class="legend-item"><span class="dot" style="background:var(--text-muted)"></span>Completado</span>
-    </div>
-    <div class="timeline-scroll" id="timeline-scroll">
-      <div class="timeline-inner" id="timeline-inner"><div class="tl-empty">Cargando línea de tiempo…</div></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <div>
         <h2>Detalle de trámites</h2>
         <div class="hint" id="table-hint">0 trámites</div>
       </div>
@@ -318,6 +291,55 @@
       <div class="empty-state" id="hitos-empty-state" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <div>Aún no hay hitos de otras áreas capturados. Usa "Nuevo hito" arriba para agregar el primero.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-timeline" style="display:none">
+    <div class="header">
+      <div class="header-title">
+        <span class="eyebrow">CRAFT · Gestión de trámites</span>
+        <h1>Líneas de tiempo</h1>
+        <div class="header-sub">Elige un proyecto para ver su cronograma completo — trámites y otras áreas juntos, agrupados por tipo de actividad.</div>
+      </div>
+    </div>
+
+    <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
+      <span class="area-filter-label">Proyecto:</span>
+      <select id="tl-select-proyecto" style="max-width:260px"><option value="">Selecciona un proyecto…</option></select>
+    </div>
+
+    <div class="panel" id="tl-empty-panel">
+      <div class="empty-state" id="tl-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="11" y2="18"/></svg>
+        <div>Selecciona un proyecto arriba para ver su línea de tiempo.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="tl-panel" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2 id="tl-proyecto-titulo">Cronograma</h2>
+          <div class="hint" id="tl-hint">0 elementos</div>
+        </div>
+      </div>
+      <div class="area-filter" id="area-filter">
+        <span class="area-filter-label">Mostrar:</span>
+        <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
+        <label><input type="checkbox" data-area="comercial" checked> Comercial</label>
+        <label><input type="checkbox" data-area="obra" checked> Obra</label>
+        <label><input type="checkbox" data-area="due_diligence" checked> Due diligence</label>
+        <label><input type="checkbox" data-area="otro" checked> Otro</label>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
+        <span class="legend-item"><span class="dot" style="background:var(--warning-dot)"></span>Por vencer (≤30 días)</span>
+        <span class="legend-item"><span class="dot" style="background:var(--serious)"></span>Urgente (≤15 días)</span>
+        <span class="legend-item"><span class="dot" style="background:var(--critical)"></span>Vencido</span>
+        <span class="legend-item"><span class="dot" style="background:var(--text-muted)"></span>Completado</span>
+      </div>
+      <div class="timeline-scroll" id="timeline-scroll">
+        <div class="timeline-inner" id="timeline-inner"><div class="tl-empty">Cargando línea de tiempo…</div></div>
       </div>
     </div>
   </div>
@@ -985,10 +1007,8 @@
     proveedores: [],
     historialFechas: [],
     filters: {
-      search: "", ciudad: "", proyectoId: "", estado: "",
-      areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
+      search: "", ciudad: "", proyectoId: "", estado: ""
     },
-    group: "proyecto",
     sort: { key: "fechaVencimiento", dir: 1 },
     editingTramiteId: null,
     deletingTramiteId: null,
@@ -997,7 +1017,8 @@
     editingHitoId: null,
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, due_diligence: true, otro: true } },
-    historialFilters: { proyectoId: "", tipo: "", nombre: "" }
+    historialFilters: { proyectoId: "", tipo: "", nombre: "" },
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true } }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1394,43 +1415,31 @@
   }
 
   /* ---------------- Timeline: combina trámites + subelementos + hitos ---------------- */
-  function getTimelineItems() {
-    var f = state.filters;
-    var q = f.search.trim().toLowerCase();
-    var areas = f.areas;
+  /* Usada solo por la pantalla "Líneas de tiempo" (siempre requiere un proyecto). */
+  function getTimelineItems(opts) {
+    opts = opts || {};
+    var proyectoId = opts.proyectoId || "";
+    var areas = opts.areas || {};
     var items = [];
+    if (!proyectoId) return items;
 
     state.tramites.forEach(function (t) {
       if (t.incluirLineaTiempo === false || !areas.tramites) return;
-      var ciudad = proyectoCiudad(t), nombreProyecto = proyectoNombre(t);
-      if (f.ciudad && ciudad !== f.ciudad) return;
-      if (f.proyectoId && t.proyectoId !== f.proyectoId) return;
-      if (f.estado && computeState(t) !== f.estado) return;
-      if (q) {
-        var hay = (t.nombre + " " + nombreProyecto + " " + ciudad + " " + (t.responsable || "") + " " + (t.notas || "")).toLowerCase();
-        if (hay.indexOf(q) === -1) return;
-      }
+      if (t.proyectoId !== proyectoId) return;
       items.push({
         id: "t:" + t.id, kind: "tramite", area: "tramites",
         nombre: t.nombre, proyectoId: t.proyectoId,
         fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento, estatus: t.estatus,
         presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos,
-        fechaConclusionReal: t.fechaConclusionReal, tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad
+        fechaConclusionReal: t.fechaConclusionReal, tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad,
+        responsable: t.responsable
       });
     });
 
     state.subelementos.forEach(function (se) {
       if (se.incluirLineaTiempo === false || !areas.tramites) return;
       var parent = getTramite(se.tramiteId);
-      if (!parent) return;
-      var ciudad = proyectoCiudad(parent), nombreProyecto = proyectoNombre(parent);
-      if (f.ciudad && ciudad !== f.ciudad) return;
-      if (f.proyectoId && parent.proyectoId !== f.proyectoId) return;
-      if (f.estado && computeState(se) !== f.estado) return;
-      if (q) {
-        var hay2 = (se.nombre + " " + parent.nombre + " " + nombreProyecto + " " + ciudad).toLowerCase();
-        if (hay2.indexOf(q) === -1) return;
-      }
+      if (!parent || parent.proyectoId !== proyectoId) return;
       items.push({
         id: "s:" + se.id, kind: "subelemento", area: "tramites",
         nombre: parent.nombre + " → " + se.nombre, proyectoId: parent.proyectoId,
@@ -1441,19 +1450,12 @@
     state.hitos.forEach(function (h) {
       if (h.incluirLineaTiempo === false || !areas[h.area]) return;
       if (!h.fechaVencimiento && !h.fechaInicio) return; // sin fecha: no se puede dibujar en la línea de tiempo
-      var ciudad = proyectoCiudad(h), nombreProyecto = proyectoNombre(h);
-      if (f.ciudad && ciudad !== f.ciudad) return;
-      if (f.proyectoId && h.proyectoId !== f.proyectoId) return;
-      if (f.estado && computeState(h) !== f.estado) return;
-      if (q) {
-        var hay3 = (h.nombre + " " + nombreProyecto + " " + ciudad + " " + (h.notas || "")).toLowerCase();
-        if (hay3.indexOf(q) === -1) return;
-      }
+      if (h.proyectoId !== proyectoId) return;
       items.push({
         id: "h:" + h.id, kind: "hito", area: h.area,
-        nombre: "[" + (AREA_LABELS[h.area] || "Otro") + "] " + h.nombre, proyectoId: h.proyectoId,
+        nombre: h.nombre, proyectoId: h.proyectoId,
         fechaInicio: h.fechaInicio || h.fechaVencimiento, fechaVencimiento: h.fechaVencimiento || h.fechaInicio,
-        estatus: h.estatus, notas: h.notas
+        estatus: h.estatus, notas: h.notas, responsable: h.responsable
       });
     });
 
@@ -1466,13 +1468,13 @@
       host.innerHTML = '<div class="tl-empty">' + (state.proyectos.length ? "No hay elementos que coincidan con estos filtros." : "Registra un proyecto y agrega trámites para ver la línea de tiempo.") + '</div>';
       return;
     }
-    var groupKey = state.group;
+    var AREA_ORDER = ["tramites", "comercial", "obra", "due_diligence", "otro"];
     var groups = {};
     filtered.forEach(function (it) {
-      var g = groupKey === "proyecto" ? proyectoNombre(it) : proyectoCiudad(it);
+      var g = it.area || "otro";
       (groups[g] = groups[g] || []).push(it);
     });
-    var groupNames = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, "es"); });
+    var groupNames = AREA_ORDER.filter(function (a) { return groups[a] && groups[a].length; });
 
     var allDates = [];
     filtered.forEach(function (it) {
@@ -1516,17 +1518,18 @@
         var e = parseDate(it.fechaVencimiento) || s;
         var left = xFor(s);
         var width = Math.max(6, xFor(e) - left);
-        var otherField = groupKey === "proyecto" ? proyectoCiudad(it) : proyectoNombre(it);
+        var sub = it.responsable ? it.responsable : "Sin responsable";
         return '<div class="tl-row">' +
-          '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + '<span class="tl-sub">' + escapeHtml(otherField) + '</span></div>' +
+          '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + '<span class="tl-sub">' + escapeHtml(sub) + '</span></div>' +
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
             '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px"></div>' +
           '</div>' +
         '</div>';
       }).join("");
+      var costSuffix = gName === "tramites" ? (' · ' + fmtMoney.format(totalCost)) : "";
       return '<div class="tl-group">' +
-        '<div class="tl-group-head"><h3>' + escapeHtml(gName) + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + ' · ' + fmtMoney.format(totalCost) + '</span></div>' +
+        '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[gName] || "Otro") + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + costSuffix + '</span></div>' +
         rowsHtml +
       '</div>';
     }).join("");
@@ -1541,6 +1544,68 @@
       bar.addEventListener("mouseleave", hideTooltip);
     });
   }
+
+  /* ---------------- Pantalla "Líneas de tiempo" (aparte del dashboard) ---------------- */
+  function populateTimelineProyectoSelect(preselectId) {
+    var el = document.getElementById("tl-select-proyecto");
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Selecciona un proyecto…</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
+    }).join("");
+    if (preselectId && sorted.some(function (p) { return p.id === preselectId; })) el.value = preselectId;
+    else el.value = "";
+  }
+
+  function renderTimelineView() {
+    var proyectoId = state.timelineView.proyectoId;
+    var panel = document.getElementById("tl-panel");
+    var emptyPanel = document.getElementById("tl-empty-panel");
+    if (!proyectoId) {
+      panel.style.display = "none";
+      emptyPanel.style.display = "";
+      return;
+    }
+    var proy = state.proyectos.find(function (p) { return p.id === proyectoId; });
+    if (!proy) {
+      // El proyecto seleccionado ya no existe (se borró); regresamos al estado inicial.
+      state.timelineView.proyectoId = "";
+      document.getElementById("tl-select-proyecto").value = "";
+      panel.style.display = "none";
+      emptyPanel.style.display = "";
+      return;
+    }
+    panel.style.display = "";
+    emptyPanel.style.display = "none";
+    document.getElementById("tl-proyecto-titulo").textContent = "Cronograma — " + proy.nombre;
+    var items = getTimelineItems({ proyectoId: proyectoId, areas: state.timelineView.areas });
+    var conFecha = items.filter(function (it) { return parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento); });
+    var hint = items.length + " actividad" + (items.length === 1 ? "" : "es");
+    if (conFecha.length) {
+      var fechas = [];
+      conFecha.forEach(function (it) {
+        var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
+        var e = parseDate(it.fechaVencimiento) || s;
+        if (s) fechas.push(s);
+        if (e) fechas.push(e);
+      });
+      var minF = new Date(Math.min.apply(null, fechas)), maxF = new Date(Math.max.apply(null, fechas));
+      hint += " · del " + minF.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) +
+        " al " + maxF.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
+    }
+    document.getElementById("tl-hint").textContent = hint;
+    renderTimeline(items);
+  }
+
+  document.getElementById("tl-select-proyecto").addEventListener("change", function (e) {
+    state.timelineView.proyectoId = e.target.value;
+    renderTimelineView();
+  });
+  document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      state.timelineView.areas[cb.dataset.area] = cb.checked;
+      renderTimelineView();
+    });
+  });
 
   function showTooltip(ev, it) {
     var tooltip = document.getElementById("tooltip");
@@ -1584,9 +1649,10 @@
     var filtered = getFilteredTramites();
     renderStats(filtered);
     renderTable(filtered);
-    renderTimeline(getTimelineItems());
     populateHitoFiltroProyecto(state.hitoViewFilters.proyectoId);
     renderHitosView();
+    populateTimelineProyectoSelect(state.timelineView.proyectoId);
+    renderTimelineView();
     populateHistFiltroProyecto(state.historialFilters.proyectoId);
     renderHistorialView();
   }
@@ -1597,30 +1663,12 @@
   document.getElementById("f-proyecto").addEventListener("change", function (e) { state.filters.proyectoId = e.target.value; renderAll(); });
   document.getElementById("f-estado").addEventListener("change", function (e) { state.filters.estado = e.target.value; renderAll(); });
   document.getElementById("btn-clear-filters").addEventListener("click", function () {
-    state.filters = {
-      search: "", ciudad: "", proyectoId: "", estado: "",
-      areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true }
-    };
+    state.filters = { search: "", ciudad: "", proyectoId: "", estado: "" };
     document.getElementById("f-search").value = "";
     document.getElementById("f-ciudad").value = "";
     document.getElementById("f-proyecto").value = "";
     document.getElementById("f-estado").value = "";
-    document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) { cb.checked = true; });
     renderAll();
-  });
-  document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) {
-    cb.addEventListener("change", function () {
-      state.filters.areas[cb.dataset.area] = cb.checked;
-      renderTimeline(getTimelineItems());
-    });
-  });
-  document.querySelectorAll("#group-toggle button").forEach(function (b) {
-    b.addEventListener("click", function () {
-      document.querySelectorAll("#group-toggle button").forEach(function (x) { x.classList.remove("active"); });
-      b.classList.add("active");
-      state.group = b.dataset.group;
-      renderAll();
-    });
   });
   document.querySelectorAll("thead th[data-sort]").forEach(function (th) {
     th.querySelector("button").addEventListener("click", function () {
@@ -2559,11 +2607,14 @@
   function showView(name) {
     document.getElementById("view-tramites").style.display = name === "tramites" ? "" : "none";
     document.getElementById("view-hitos").style.display = name === "hitos" ? "" : "none";
+    document.getElementById("view-timeline").style.display = name === "timeline" ? "" : "none";
     document.getElementById("view-historial").style.display = name === "historial" ? "" : "none";
     document.getElementById("nav-tramites").classList.toggle("active", name === "tramites");
     document.getElementById("nav-hitos").classList.toggle("active", name === "hitos");
+    document.getElementById("nav-timeline").classList.toggle("active", name === "timeline");
     document.getElementById("nav-historial").classList.toggle("active", name === "historial");
     if (name === "historial") { populateHistFiltroProyecto(state.historialFilters.proyectoId); renderHistorialView(); }
+    if (name === "timeline") { populateTimelineProyectoSelect(state.timelineView.proyectoId); renderTimelineView(); }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   document.getElementById("nav-catalogos-toggle").addEventListener("click", function () {
@@ -2581,6 +2632,11 @@
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
     showView("hitos");
+  });
+  document.getElementById("nav-timeline").addEventListener("click", function () {
+    document.getElementById("dlg-catalogo-tramites").close();
+    document.getElementById("dlg-proveedores").close();
+    showView("timeline");
   });
   document.getElementById("nav-historial").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
