@@ -205,6 +205,8 @@
   .icon-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
   .icon-btn svg { width: 16px; height: 16px; }
   .icon-btn.danger:hover { color: var(--critical); background: var(--critical-tint); }
+  .icon-btn.linea-toggle-btn.active { color: var(--accent); }
+  .icon-btn.linea-toggle-btn:not(.active) { color: var(--text-muted); }
   .link-btn { background: none; border: none; color: var(--accent); font-size: 12px; font-weight: 500; cursor: pointer; padding: 0; }
   .link-btn:hover { text-decoration: underline; }
 
