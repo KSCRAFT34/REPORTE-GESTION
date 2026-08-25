@@ -748,8 +748,9 @@
         <input type="date" id="hito-inicio">
       </div>
       <div class="field">
-        <label for="hito-vencimiento">Fecha de término</label>
+        <label for="hito-vencimiento">Fecha de término <span class="req">*</span></label>
         <input type="date" id="hito-vencimiento">
+        <span class="field-hint">Necesaria para que aparezca en la línea de tiempo.</span>
       </div>
       <div class="field">
         <label for="hito-estatus">Estatus</label>
@@ -1439,6 +1440,7 @@
 
     state.hitos.forEach(function (h) {
       if (h.incluirLineaTiempo === false || !areas[h.area]) return;
+      if (!h.fechaVencimiento && !h.fechaInicio) return; // sin fecha: no se puede dibujar en la línea de tiempo
       var ciudad = proyectoCiudad(h), nombreProyecto = proyectoNombre(h);
       if (f.ciudad && ciudad !== f.ciudad) return;
       if (f.proyectoId && h.proyectoId !== f.proyectoId) return;
@@ -1505,7 +1507,8 @@
       }).join("") + '</div>';
 
     var groupsHtml = groupNames.map(function (gName) {
-      var rows = groups[gName].slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
+      var rows = groups[gName].filter(function (it) { return parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento); })
+        .slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
       var totalCost = rows.filter(function (it) { return it.kind === "tramite"; }).reduce(function (s, it) { return s + totalCosto(it); }, 0);
       var rowsHtml = rows.map(function (it) {
         var st = computeState(it);
@@ -2378,6 +2381,7 @@
     document.getElementById("hito-incluir-linea").checked = h ? h.incluirLineaTiempo !== false : true;
     populateDependeSelect("hito-depende", h ? ("h:" + h.id) : null);
     document.getElementById("hito-depende").value = h ? (h.dependeDe || "") : "";
+    ["hito-proyecto", "hito-nombre", "hito-vencimiento"].forEach(function (fid) { document.getElementById(fid).style.borderColor = ""; });
     setHitoFormStatus("");
     dlgHitos.showModal();
     document.getElementById("hito-nombre").focus();
@@ -2389,15 +2393,20 @@
   document.getElementById("btn-hito-save").addEventListener("click", function () {
     var proyectoId = document.getElementById("hito-proyecto").value;
     var nombre = document.getElementById("hito-nombre").value.trim();
-    if (!proyectoId || !nombre) {
-      setHitoFormStatus("Completa proyecto y nombre del hito.", false);
+    var vencimiento = document.getElementById("hito-vencimiento").value;
+    if (!proyectoId || !nombre || !vencimiento) {
+      ["hito-proyecto", "hito-nombre", "hito-vencimiento"].forEach(function (fid) {
+        var val = fid === "hito-proyecto" ? proyectoId : (fid === "hito-nombre" ? nombre : vencimiento);
+        document.getElementById(fid).style.borderColor = val ? "" : "var(--critical)";
+      });
+      setHitoFormStatus("Completa proyecto, nombre y fecha de término — sin esa fecha no puede aparecer en la línea de tiempo.", false);
       return;
     }
     var payload = {
       proyectoId: proyectoId, nombre: nombre,
       area: document.getElementById("hito-area").value,
       fechaInicio: document.getElementById("hito-inicio").value || "",
-      fechaVencimiento: document.getElementById("hito-vencimiento").value || "",
+      fechaVencimiento: vencimiento,
       estatus: document.getElementById("hito-estatus").value,
       responsable: document.getElementById("hito-responsable").value.trim(),
       notas: document.getElementById("hito-notas").value.trim(),

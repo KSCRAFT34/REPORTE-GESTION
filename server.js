@@ -409,13 +409,14 @@ function sanitizeSubelemento(body) {
 function sanitizeHito(body, selfId) {
   const proyectoId = String((body && body.proyectoId) || "").trim();
   const nombre = String((body && body.nombre) || "").trim();
-  if (!proyectoId || !nombre) return null;
+  const fechaVencimiento = body && body.fechaVencimiento ? String(body.fechaVencimiento).slice(0, 10) : null;
+  if (!proyectoId || !nombre || !fechaVencimiento) return null;
   const area = HITO_AREAS.includes(body.area) ? body.area : "otro";
   const estatus = ESTATUS_VALIDOS.includes(body.estatus) ? body.estatus : "en_proceso";
   return {
     proyectoId, nombre, area,
     fechaInicio: body.fechaInicio ? String(body.fechaInicio).slice(0, 10) : null,
-    fechaVencimiento: body.fechaVencimiento ? String(body.fechaVencimiento).slice(0, 10) : null,
+    fechaVencimiento,
     estatus,
     responsable: String((body && body.responsable) || "").trim(),
     notas: String((body && body.notas) || "").trim(),
@@ -789,7 +790,7 @@ app.delete("/api/subelementos/:id", requireEditor, async (req, res) => {
 /* ---------------- Hitos (otras áreas: comercial, obra, due diligence, etc.) ---------------- */
 app.post("/api/hitos", requireEditor, async (req, res) => {
   const data = sanitizeHito(req.body || {});
-  if (!data) return res.status(400).json({ error: "Completa el proyecto y el nombre del hito." });
+  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término del hito." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
@@ -807,7 +808,7 @@ app.post("/api/hitos", requireEditor, async (req, res) => {
 
 app.put("/api/hitos/:id", requireEditor, async (req, res) => {
   const data = sanitizeHito(req.body || {}, req.params.id);
-  if (!data) return res.status(400).json({ error: "Completa el proyecto y el nombre del hito." });
+  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término del hito." });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
