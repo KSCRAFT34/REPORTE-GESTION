@@ -261,6 +261,8 @@
       <label><input type="checkbox" checked data-hito-area="due_diligence"> Due diligence</label>
       <label><input type="checkbox" checked data-hito-area="escrituracion"> Escrituración</label>
       <label><input type="checkbox" checked data-hito-area="otro"> Otro</label>
+      <button type="button" class="link-btn" id="btn-hito-area-todas" style="margin-left:10px">Todas</button>
+      <button type="button" class="link-btn" id="btn-hito-area-ninguna">Ninguna</button>
       <span class="area-filter-label" style="margin-left:18px">Proyecto:</span>
       <select id="hito-filtro-proyecto" style="max-width:220px"><option value="">Todos los proyectos</option></select>
     </div>
@@ -881,7 +883,7 @@
   <div class="dlg-body">
     <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Lista maestra de actividades (varían por ciudad). Regístralas aquí una vez y después, al dar de alta un trámite real en un proyecto, lo eliges de esta lista en vez de escribirlo de cero.</p>
     <div class="requires-edit">
-      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Agregar actividad al catálogo</div>
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0" id="cat-tram-form-title">Agregar actividad al catálogo</div>
       <div class="form-grid" style="margin-bottom:6px">
         <div class="field span-2">
           <label for="cat-tram-nombre">Nombre <span class="req">*</span></label>
@@ -898,7 +900,10 @@
       </div>
       <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
         <div class="status-msg" id="cat-tram-status" style="visibility:hidden;margin:0"></div>
-        <button type="button" class="btn btn-primary" id="btn-cat-tram-add">Agregar al catálogo</button>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn" id="btn-cat-tram-cancel-edit" style="display:none">Cancelar edición</button>
+          <button type="button" class="btn btn-primary" id="btn-cat-tram-add">Agregar al catálogo</button>
+        </div>
       </div>
     </div>
 
@@ -1021,6 +1026,7 @@
     subelementos: [],
     hitos: [],
     catalogoTramites: [],
+    editingCatalogoTramiteId: null,
     proveedores: [],
     historialFechas: [],
     filters: {
@@ -1485,7 +1491,7 @@
       host.innerHTML = '<div class="tl-empty">' + (state.proyectos.length ? "No hay elementos que coincidan con estos filtros." : "Registra un proyecto y agrega trámites para ver la línea de tiempo.") + '</div>';
       return;
     }
-    var AREA_ORDER = ["tramites", "comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "obra", "administracion", "escrituracion", "otro"];
     var groups = {};
     filtered.forEach(function (it) {
       var g = it.area || "otro";
@@ -2452,6 +2458,15 @@
       renderHitosView();
     });
   });
+  function setAllHitoAreaCheckboxes(checked) {
+    document.querySelectorAll('#view-hitos .area-filter input[data-hito-area]').forEach(function (cb) {
+      cb.checked = checked;
+      state.hitoViewFilters.areas[cb.dataset.hitoArea] = checked;
+    });
+    renderHitosView();
+  }
+  document.getElementById("btn-hito-area-todas").addEventListener("click", function () { setAllHitoAreaCheckboxes(true); });
+  document.getElementById("btn-hito-area-ninguna").addEventListener("click", function () { setAllHitoAreaCheckboxes(false); });
 
   function setHitoFormStatus(msg, ok) {
     var el = document.getElementById("hito-form-status");
@@ -2741,13 +2756,19 @@
         '<td>' + escapeHtml(c.nombre) + '</td>' +
         '<td>' + (c.dependencia ? escapeHtml(c.dependencia) : '—') + '</td>' +
         '<td>' + (c.ciudad ? escapeHtml(c.ciudad) : '—') + '</td>' +
-        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-cat-tram-btn" data-id="' + c.id + '" aria-label="Eliminar">' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn edit-cat-tram-btn" data-id="' + c.id + '" aria-label="Editar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>' +
+        '</button><button class="icon-btn danger del-cat-tram-btn" data-id="' + c.id + '" aria-label="Eliminar">' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
         '</button></div></td>' +
       '</tr>';
     }).join("");
+    tbody.querySelectorAll(".edit-cat-tram-btn").forEach(function (b) {
+      b.addEventListener("click", function () { openEditCatalogoTramite(b.dataset.id); });
+    });
     tbody.querySelectorAll(".del-cat-tram-btn").forEach(function (b) {
       b.addEventListener("click", function () {
+        if (state.editingCatalogoTramiteId === b.dataset.id) cancelEditCatalogoTramite();
         api("/api/catalogo-tramites/" + b.dataset.id, { method: "DELETE" })
           .then(function () { return refreshAll(); })
           .then(function () { renderCatalogoTramitesTable(); })
@@ -2755,8 +2776,33 @@
       });
     });
   }
-  document.getElementById("dlg-catalogo-tramites-close").addEventListener("click", function () { dlgCatalogoTramites.close(); });
-  document.getElementById("dlg-catalogo-tramites-done").addEventListener("click", function () { dlgCatalogoTramites.close(); });
+  function openEditCatalogoTramite(id) {
+    var c = state.catalogoTramites.find(function (x) { return x.id === id; });
+    if (!c) return;
+    state.editingCatalogoTramiteId = id;
+    document.getElementById("cat-tram-nombre").value = c.nombre || "";
+    document.getElementById("cat-tram-dependencia").value = c.dependencia || "";
+    document.getElementById("cat-tram-ciudad").value = c.ciudad || "";
+    document.getElementById("cat-tram-form-title").textContent = "Editar actividad del catálogo";
+    document.getElementById("btn-cat-tram-add").textContent = "Guardar cambios";
+    document.getElementById("btn-cat-tram-cancel-edit").style.display = "";
+    document.getElementById("cat-tram-status").style.visibility = "hidden";
+    document.getElementById("cat-tram-nombre").focus();
+    document.getElementById("cat-tram-nombre").scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  function cancelEditCatalogoTramite() {
+    state.editingCatalogoTramiteId = null;
+    document.getElementById("cat-tram-nombre").value = "";
+    document.getElementById("cat-tram-dependencia").value = "";
+    document.getElementById("cat-tram-ciudad").value = "";
+    document.getElementById("cat-tram-form-title").textContent = "Agregar actividad al catálogo";
+    document.getElementById("btn-cat-tram-add").textContent = "Agregar al catálogo";
+    document.getElementById("btn-cat-tram-cancel-edit").style.display = "none";
+    document.getElementById("cat-tram-status").style.visibility = "hidden";
+  }
+  document.getElementById("dlg-catalogo-tramites-close").addEventListener("click", function () { cancelEditCatalogoTramite(); dlgCatalogoTramites.close(); });
+  document.getElementById("dlg-catalogo-tramites-done").addEventListener("click", function () { cancelEditCatalogoTramite(); dlgCatalogoTramites.close(); });
+  document.getElementById("btn-cat-tram-cancel-edit").addEventListener("click", function () { cancelEditCatalogoTramite(); });
   document.getElementById("btn-cat-tram-add").addEventListener("click", function () {
     var status = document.getElementById("cat-tram-status");
     var nombre = document.getElementById("cat-tram-nombre").value.trim();
@@ -2771,13 +2817,15 @@
       dependencia: document.getElementById("cat-tram-dependencia").value.trim(),
       ciudad: document.getElementById("cat-tram-ciudad").value.trim()
     };
-    api("/api/catalogo-tramites", { method: "POST", body: JSON.stringify(payload) })
-      .then(function () {
-        status.textContent = "Agregado al catálogo.";
+    var editingId = state.editingCatalogoTramiteId;
+    var req = editingId
+      ? api("/api/catalogo-tramites/" + editingId, { method: "PUT", body: JSON.stringify(payload) })
+      : api("/api/catalogo-tramites", { method: "POST", body: JSON.stringify(payload) });
+    req.then(function () {
+        cancelEditCatalogoTramite();
+        status.textContent = editingId ? "Cambios guardados." : "Agregado al catálogo.";
         status.className = "status-msg ok";
-        document.getElementById("cat-tram-nombre").value = "";
-        document.getElementById("cat-tram-dependencia").value = "";
-        document.getElementById("cat-tram-ciudad").value = "";
+        status.style.visibility = "visible";
         return refreshAll();
       })
       .then(function () { renderCatalogoTramitesTable(); })

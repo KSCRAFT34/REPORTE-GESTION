@@ -46,7 +46,11 @@ información, y queda protegida con una contraseña.
     el campo "Nombre" de cada actividad nueva también se elige de esta lista (ya no
     se escribe libre) para que no queden dos veces la misma actividad con
     mayúscula/minúscula distinta — y si la que necesitas no está, hay un botón
-    "+ Agregar actividad nueva al catálogo" ahí mismo en el formulario.
+    "+ Agregar actividad nueva al catálogo" ahí mismo en el formulario. Cada
+    actividad del catálogo se puede editar (lápiz) o eliminar (bote de basura);
+    ojo — si le cambias el nombre a una del catálogo, las actividades que ya
+    capturaste con el nombre anterior NO cambian solas (quedan con el texto
+    que tenían al momento de capturarlas).
   - **Proveedores**: tus gestores, DRO, etc., con nombre, tipo, ciudad, correo,
     teléfono y cuenta bancaria.
 - Base de datos PostgreSQL (la crea Render automáticamente).
