@@ -12,9 +12,10 @@ información, y queda protegida con una contraseña.
 - Pagos reales (estado de cuenta) separados de la proyección de costos.
 - Subelementos dentro de un trámite (por ejemplo, los distintos pasos que exige una
   Licencia de Edificación), cada uno con su propia fecha y estatus.
-- **Áreas** (comercial, obra, due diligence, etc.): pantalla propia en el menú
-  izquierdo donde capturas cada hito igual que un trámite — con fecha de inicio y
-  término, responsable, y su propio color por área — en vez de una fecha suelta.
+- **Áreas** (comercial, obra, diseño, administración, due diligence,
+  escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
+  hito igual que un trámite — con fecha de inicio y término, responsable, y su
+  propio color por área — en vez de una fecha suelta.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se
@@ -30,11 +31,11 @@ información, y queda protegida con una contraseña.
   aparte qué tanto se ha movido algo.
 - **Líneas de tiempo**: pantalla propia en el menú izquierdo, separada del
   dashboard (con tanta información, mezclado con la tabla no se leía bien).
-  Eliges un proyecto y ves su cronograma completo — trámites y otras áreas
-  juntos, agrupados por tipo de actividad (Trámites, Comercial, Obra, Due
-  diligence, Otro) — con un botón por trámite/subelemento/hito para decidir si
-  aparece ahí. El dashboard conserva la tabla y los filtros de trámites; la
-  parte visual de Gantt vive solo aquí.
+  Eliges un proyecto y ves su cronograma completo — trámites y áreas
+  juntos, agrupados por tipo de actividad (Trámites, Comercial, Obra, Diseño,
+  Administración, Due diligence, Escrituración, Otro) — con un botón por
+  trámite/subelemento/hito para decidir si aparece ahí. El dashboard conserva
+  la tabla y los filtros de trámites; la parte visual de Gantt vive solo aquí.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir

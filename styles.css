@@ -23,6 +23,8 @@
     --warning-tint: rgba(250,178,25,0.22);
     --serious-tint: rgba(236,131,90,0.18);
     --critical-tint: rgba(208,59,59,0.12);
+    --info: #7c5cbf;
+    --info-tint: rgba(124,92,191,0.14);
     --neutral-tint: rgba(93,88,80,0.12);
     --shadow-card: 0 1px 2px rgba(28,25,20,0.06);
     --shadow-pop: 0 12px 32px rgba(28,25,20,0.16), 0 2px 8px rgba(28,25,20,0.08);
@@ -58,6 +60,8 @@
       --warning-tint: rgba(250,178,25,0.20);
       --serious-tint: rgba(236,131,90,0.20);
       --critical-tint: rgba(239,115,115,0.18);
+      --info: #b39ddb;
+      --info-tint: rgba(179,157,219,0.18);
       --neutral-tint: rgba(199,193,180,0.14);
       --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
       --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -88,6 +92,8 @@
     --warning-tint: rgba(250,178,25,0.20);
     --serious-tint: rgba(236,131,90,0.20);
     --critical-tint: rgba(239,115,115,0.18);
+    --info: #b39ddb;
+    --info-tint: rgba(179,157,219,0.18);
     --neutral-tint: rgba(199,193,180,0.14);
     --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
     --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -371,7 +377,10 @@
   .pill .dot.st-completado { background: var(--text-muted); }
   .pill.area-comercial { background: var(--accent-tint); color: var(--accent); }
   .pill.area-obra { background: var(--warning-tint); color: var(--warning); }
+  .pill.area-diseno { background: var(--info-tint); color: var(--info); }
+  .pill.area-administracion { background: var(--good-tint); color: var(--good); }
   .pill.area-due_diligence { background: var(--serious-tint); color: var(--serious); }
+  .pill.area-escrituracion { background: var(--critical-tint); color: var(--critical); }
   .pill.area-otro { background: var(--neutral-tint); color: var(--text-secondary); }
 
   /* ---------- Toggle "Línea de tiempo" (visible/oculto) en la tabla de trámites ---------- */

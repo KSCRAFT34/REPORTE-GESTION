@@ -14,7 +14,7 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const PAGO_TIPOS = ["gestion", "derechos"];
 const ESTATUS_VALIDOS = ["no_iniciado", "en_proceso", "completado"];
 const DURATION_UNITS = ["dias", "semanas", "meses"];
-const HITO_AREAS = ["comercial", "obra", "due_diligence", "otro"];
+const HITO_AREAS = ["comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
 
 if (!EDIT_PASSWORD) {
   console.warn("AVISO: EDIT_PASSWORD no esta configurada. Nadie podra iniciar sesion con permiso de edicion.");

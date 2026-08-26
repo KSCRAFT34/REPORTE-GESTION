@@ -240,8 +240,8 @@
     <div class="header">
       <div class="header-title">
         <span class="eyebrow">CRAFT · Gestión de trámites</span>
-        <h1>Otras áreas</h1>
-        <div class="header-sub">Hitos de comercial, obra, due diligence, etc. — con su propia fecha de inicio y término, igual que un trámite.</div>
+        <h1>Áreas</h1>
+        <div class="header-sub">Hitos de comercial, obra, diseño, administración, due diligence, escrituración, etc. — con su propia fecha de inicio y término, igual que un trámite.</div>
       </div>
       <div class="header-actions">
         <button class="btn btn-primary requires-edit" id="btn-add-hito" title="Registra un proyecto primero">
@@ -255,7 +255,10 @@
       <span class="area-filter-label">Área:</span>
       <label><input type="checkbox" checked data-hito-area="comercial"> Comercial</label>
       <label><input type="checkbox" checked data-hito-area="obra"> Obra</label>
+      <label><input type="checkbox" checked data-hito-area="diseno"> Diseño</label>
+      <label><input type="checkbox" checked data-hito-area="administracion"> Administración</label>
       <label><input type="checkbox" checked data-hito-area="due_diligence"> Due diligence</label>
+      <label><input type="checkbox" checked data-hito-area="escrituracion"> Escrituración</label>
       <label><input type="checkbox" checked data-hito-area="otro"> Otro</label>
       <span class="area-filter-label" style="margin-left:18px">Proyecto:</span>
       <select id="hito-filtro-proyecto" style="max-width:220px"><option value="">Todos los proyectos</option></select>
@@ -264,7 +267,7 @@
     <div class="panel">
       <div class="panel-head">
         <div>
-          <h2>Detalle de otras áreas</h2>
+          <h2>Detalle de áreas</h2>
           <div class="hint" id="hitos-hint">0 hitos</div>
         </div>
       </div>
@@ -290,7 +293,7 @@
       </div>
       <div class="empty-state" id="hitos-empty-state" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <div>Aún no hay hitos de otras áreas capturados. Usa "Nuevo hito" arriba para agregar el primero.</div>
+        <div>Aún no hay hitos de áreas capturados. Usa "Nuevo hito" arriba para agregar el primero.</div>
       </div>
     </div>
   </div>
@@ -328,7 +331,10 @@
         <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
         <label><input type="checkbox" data-area="comercial" checked> Comercial</label>
         <label><input type="checkbox" data-area="obra" checked> Obra</label>
+        <label><input type="checkbox" data-area="diseno" checked> Diseño</label>
+        <label><input type="checkbox" data-area="administracion" checked> Administración</label>
         <label><input type="checkbox" data-area="due_diligence" checked> Due diligence</label>
+        <label><input type="checkbox" data-area="escrituracion" checked> Escrituración</label>
         <label><input type="checkbox" data-area="otro" checked> Otro</label>
       </div>
       <div class="legend">
@@ -360,7 +366,7 @@
       <select id="hist-filtro-tipo" style="max-width:160px">
         <option value="">Todos</option>
         <option value="tramite">Trámites</option>
-        <option value="hito">Otras áreas</option>
+        <option value="hito">Áreas</option>
       </select>
       <span class="area-filter-label" style="margin-left:18px">Buscar:</span>
       <input type="text" id="hist-filtro-nombre" placeholder="Nombre de la actividad…" style="max-width:220px">
@@ -746,7 +752,7 @@
     </button>
   </div>
   <div class="dlg-body">
-    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Actividades de otras áreas (comercial, obra, due diligence, etc.) que no son trámites, capturadas igual que uno: con fecha de inicio, fecha de término y responsable.</p>
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Actividades de áreas (comercial, obra, diseño, administración, due diligence, escrituración, etc.) que no son trámites, capturadas igual que uno: con fecha de inicio, fecha de término y responsable.</p>
     <div class="form-grid">
       <div class="field">
         <label for="hito-proyecto">Proyecto <span class="req">*</span></label>
@@ -757,7 +763,10 @@
         <select id="hito-area">
           <option value="comercial">Comercial</option>
           <option value="obra">Obra</option>
+          <option value="diseno">Diseño</option>
+          <option value="administracion">Administración</option>
           <option value="due_diligence">Due diligence</option>
+          <option value="escrituracion">Escrituración</option>
           <option value="otro">Otro</option>
         </select>
       </div>
@@ -994,7 +1003,7 @@
   function uid() { return "id" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 
   var HITO_AREAS = ["comercial", "obra", "due_diligence", "otro"];
-  var AREA_LABELS = { tramites: "Trámites", comercial: "Comercial", obra: "Obra", due_diligence: "Due diligence", otro: "Otro" };
+  var AREA_LABELS = { tramites: "Trámites", comercial: "Comercial", obra: "Obra", diseno: "Diseño", administracion: "Administración", due_diligence: "Due diligence", escrituracion: "Escrituración", otro: "Otro" };
 
   var state = {
     role: null,
@@ -1016,9 +1025,9 @@
     deletingProyectoId: null,
     editingHitoId: null,
     deletingHitoId: null,
-    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, due_diligence: true, otro: true } },
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, due_diligence: true, otro: true } }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true } }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1468,7 +1477,7 @@
       host.innerHTML = '<div class="tl-empty">' + (state.proyectos.length ? "No hay elementos que coincidan con estos filtros." : "Registra un proyecto y agrega trámites para ver la línea de tiempo.") + '</div>';
       return;
     }
-    var AREA_ORDER = ["tramites", "comercial", "obra", "due_diligence", "otro"];
+    var AREA_ORDER = ["tramites", "comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
     var groups = {};
     filtered.forEach(function (it) {
       var g = it.area || "otro";
@@ -2572,7 +2581,7 @@
       return '<tr>' +
         '<td class="cell-tramite"><span class="t-name">' + escapeHtml(r.itemNombre || "(sin nombre)") + '</span></td>' +
         '<td>' + escapeHtml(r.proyectoNombre) + '</td>' +
-        '<td>' + (r.tipo === "hito" ? "Otras áreas" : "Trámite") + '</td>' +
+        '<td>' + (r.tipo === "hito" ? "Áreas" : "Trámite") + '</td>' +
         '<td>' + r.numCambios + '</td>' +
         '<td class="cell-date">' + fmtDate(r.fechaOriginal) + '</td>' +
         '<td class="cell-date">' + fmtDate(r.fechaActual) + '</td>' +
