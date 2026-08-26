@@ -14,7 +14,7 @@ información, y queda protegida con una contraseña.
   Licencia de Edificación), cada uno con su propia fecha y estatus.
 - **Áreas** (comercial, obra, diseño, administración, due diligence,
   escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
-  hito igual que un trámite — con fecha de inicio y término, responsable, y su
+  actividad igual que un trámite — con fecha de inicio y término, responsable, y su
   propio color por área — en vez de una fecha suelta.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
@@ -34,14 +34,14 @@ información, y queda protegida con una contraseña.
   Eliges un proyecto y ves su cronograma completo — trámites y áreas
   juntos, agrupados por tipo de actividad (Trámites, Comercial, Obra, Diseño,
   Administración, Due diligence, Escrituración, Otro) — con un botón por
-  trámite/subelemento/hito para decidir si aparece ahí. El dashboard conserva
+  trámite/subelemento/actividad para decidir si aparece ahí. El dashboard conserva
   la tabla y los filtros de trámites; la parte visual de Gantt vive solo aquí.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir
   llenando poco a poco (no piden todos los datos de una vez):
   - **Proyectos**: de una vez puedes anotar nombre y dirección.
-  - **Trámites**: una lista maestra (nombre + dependencia + ciudad) para elegir de
+  - **Actividad**: una lista maestra (nombre + dependencia + ciudad) para elegir de
     ahí al dar de alta un trámite real, en vez de escribirlo desde cero.
   - **Proveedores**: tus gestores, DRO, etc., con nombre, tipo, ciudad, correo,
     teléfono y cuenta bancaria.
@@ -54,7 +54,7 @@ La app pide una contraseña para entrar, y **según cuál escribas, entras con u
 permiso distinto**:
 
 - **Contraseña de edición**: puede capturar, editar y borrar todo (proyectos,
-  trámites, pagos, subelementos, hitos). Es la que usas tú y quien más necesite
+  trámites, pagos, subelementos, actividades de áreas). Es la que usas tú y quien más necesite
   actualizar la información.
 - **Contraseña de solo lectura**: entra a la misma página, ve exactamente la misma
   información en tiempo real, pero no puede cambiar nada — los botones de agregar,

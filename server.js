@@ -790,7 +790,7 @@ app.delete("/api/subelementos/:id", requireEditor, async (req, res) => {
 /* ---------------- Hitos (otras áreas: comercial, obra, due diligence, etc.) ---------------- */
 app.post("/api/hitos", requireEditor, async (req, res) => {
   const data = sanitizeHito(req.body || {});
-  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término del hito." });
+  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término de la actividad." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
@@ -802,18 +802,18 @@ app.post("/api/hitos", requireEditor, async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err.code === "23503") return res.status(400).json({ error: "El proyecto seleccionado no existe." });
-    res.status(500).json({ error: "No se pudo guardar el hito." });
+    res.status(500).json({ error: "No se pudo guardar la actividad." });
   }
 });
 
 app.put("/api/hitos/:id", requireEditor, async (req, res) => {
   const data = sanitizeHito(req.body || {}, req.params.id);
-  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término del hito." });
+  if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término de la actividad." });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const prevRes = await client.query("SELECT fecha_inicio, fecha FROM hitos WHERE id=$1 FOR UPDATE", [req.params.id]);
-    if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Hito no encontrado." }); }
+    if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Actividad no encontrada." }); }
     const prevInicio = dateStr(prevRes.rows[0].fecha_inicio);
     const prevFecha = dateStr(prevRes.rows[0].fecha);
 
@@ -837,7 +837,7 @@ app.put("/api/hitos/:id", requireEditor, async (req, res) => {
   } catch (err) {
     await client.query("ROLLBACK");
     console.error(err);
-    res.status(500).json({ error: "No se pudo actualizar el hito." });
+    res.status(500).json({ error: "No se pudo actualizar la actividad." });
   } finally {
     client.release();
   }
@@ -849,7 +849,7 @@ app.delete("/api/hitos/:id", requireEditor, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "No se pudo eliminar el hito." });
+    res.status(500).json({ error: "No se pudo eliminar la actividad." });
   }
 });
 
