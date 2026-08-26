@@ -773,7 +773,14 @@
       </div>
       <div class="field span-2">
         <label for="hito-nombre">Nombre <span class="req">*</span></label>
-        <input type="text" id="hito-nombre" placeholder="p. ej. Firma de contrato de preventa">
+        <select id="hito-nombre"></select>
+        <div style="margin-top:6px"><button type="button" class="link-btn" id="btn-hito-nombre-add-toggle">+ Agregar actividad nueva al catálogo</button></div>
+        <div id="hito-nombre-add-form" style="display:none;margin-top:8px;gap:8px;align-items:center">
+          <input type="text" id="hito-nombre-new" placeholder="Nombre de la actividad nueva" style="flex:1;min-width:0">
+          <button type="button" class="btn btn-primary" id="btn-hito-nombre-add-save" style="white-space:nowrap">Agregar</button>
+          <button type="button" class="btn" id="btn-hito-nombre-add-cancel">Cancelar</button>
+        </div>
+        <span class="field-hint">Elige de la lista para que no queden dos veces la misma actividad escrita distinto. Si no está, agrégala al catálogo aquí mismo.</span>
       </div>
       <div class="field">
         <label for="hito-inicio">Fecha de inicio</label>
@@ -2328,6 +2335,21 @@
       return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
     }).join("");
   }
+  function populateHitoNombreSelect(currentNombre) {
+    var el = document.getElementById("hito-nombre");
+    var nombresUnicos = uniqueFrom(state.catalogoTramites, "nombre");
+    var found = false;
+    var opts = ['<option value="">Selecciona una actividad…</option>'];
+    nombresUnicos.forEach(function (nombre) {
+      if (currentNombre && nombre === currentNombre) found = true;
+      opts.push('<option value="' + escapeAttr(nombre) + '">' + escapeHtml(nombre) + '</option>');
+    });
+    if (currentNombre && !found) {
+      opts.push('<option value="' + escapeAttr(currentNombre) + '">' + escapeHtml(currentNombre) + ' (fuera del catálogo)</option>');
+    }
+    el.innerHTML = opts.join("");
+    el.value = currentNombre || "";
+  }
   function populateHitoFiltroProyecto(preselectId) {
     var el = document.getElementById("hito-filtro-proyecto");
     var sorted = proyectosSorted();
@@ -2445,7 +2467,9 @@
     populateHitoProyectoSelect();
     document.getElementById("hito-proyecto").value = h ? h.proyectoId : (state.hitoViewFilters.proyectoId || "");
     document.getElementById("hito-area").value = h ? h.area : "comercial";
-    document.getElementById("hito-nombre").value = h ? h.nombre : "";
+    populateHitoNombreSelect(h ? h.nombre : "");
+    document.getElementById("hito-nombre-add-form").style.display = "none";
+    document.getElementById("hito-nombre-new").value = "";
     document.getElementById("hito-inicio").value = h ? (h.fechaInicio || "") : "";
     document.getElementById("hito-vencimiento").value = h ? (h.fechaVencimiento || "") : "";
     document.getElementById("hito-estatus").value = h ? h.estatus : "en_proceso";
@@ -2462,6 +2486,32 @@
   document.getElementById("btn-add-hito").addEventListener("click", function () { openHitoForm(null); });
   document.getElementById("dlg-hitos-close").addEventListener("click", function () { dlgHitos.close(); });
   document.getElementById("dlg-hitos-close2").addEventListener("click", function () { dlgHitos.close(); });
+
+  document.getElementById("btn-hito-nombre-add-toggle").addEventListener("click", function () {
+    var wrap = document.getElementById("hito-nombre-add-form");
+    wrap.style.display = "flex";
+    document.getElementById("hito-nombre-new").focus();
+  });
+  document.getElementById("btn-hito-nombre-add-cancel").addEventListener("click", function () {
+    document.getElementById("hito-nombre-add-form").style.display = "none";
+    document.getElementById("hito-nombre-new").value = "";
+  });
+  document.getElementById("btn-hito-nombre-add-save").addEventListener("click", function () {
+    var nombre = document.getElementById("hito-nombre-new").value.trim();
+    if (!nombre) { document.getElementById("hito-nombre-new").focus(); return; }
+    var btn = this;
+    btn.disabled = true;
+    api("/api/catalogo-tramites", { method: "POST", body: JSON.stringify({ nombre: nombre, dependencia: "", ciudad: "" }) })
+      .then(function (created) {
+        state.catalogoTramites.push(created);
+        populateHitoNombreSelect(created.nombre);
+        document.getElementById("hito-nombre-add-form").style.display = "none";
+        document.getElementById("hito-nombre-new").value = "";
+        fillDatalist("dl-tipos", uniqueMerge(uniqueFrom(state.tramites, "nombre"), state.catalogoTramites.map(function (c) { return c.nombre; })));
+      })
+      .catch(function (err) { setHitoFormStatus(err.message || "No se pudo agregar la actividad al catálogo.", false); })
+      .then(function () { btn.disabled = false; });
+  });
 
   document.getElementById("btn-hito-save").addEventListener("click", function () {
     var proyectoId = document.getElementById("hito-proyecto").value;
@@ -2712,7 +2762,7 @@
     var nombre = document.getElementById("cat-tram-nombre").value.trim();
     status.style.visibility = "visible";
     if (!nombre) {
-      status.textContent = "Completa al menos el nombre del trámite.";
+      status.textContent = "Completa al menos el nombre de la actividad.";
       status.className = "status-msg err";
       return;
     }

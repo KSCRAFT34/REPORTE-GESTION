@@ -42,7 +42,11 @@ información, y queda protegida con una contraseña.
   llenando poco a poco (no piden todos los datos de una vez):
   - **Proyectos**: de una vez puedes anotar nombre y dirección.
   - **Actividad**: una lista maestra (nombre + dependencia + ciudad) para elegir de
-    ahí al dar de alta un trámite real, en vez de escribirlo desde cero.
+    ahí al dar de alta un trámite real, en vez de escribirlo desde cero. En "Áreas",
+    el campo "Nombre" de cada actividad nueva también se elige de esta lista (ya no
+    se escribe libre) para que no queden dos veces la misma actividad con
+    mayúscula/minúscula distinta — y si la que necesitas no está, hay un botón
+    "+ Agregar actividad nueva al catálogo" ahí mismo en el formulario.
   - **Proveedores**: tus gestores, DRO, etc., con nombre, tipo, ciudad, correo,
     teléfono y cuenta bancaria.
 - Base de datos PostgreSQL (la crea Render automáticamente).

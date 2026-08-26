@@ -856,7 +856,7 @@ app.delete("/api/hitos/:id", requireEditor, async (req, res) => {
 /* ---------------- Catálogo de trámites (lista maestra, sin fechas ni costos) ---------------- */
 app.post("/api/catalogo-tramites", requireEditor, async (req, res) => {
   const data = sanitizeCatalogoTramite(req.body || {});
-  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del trámite." });
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre de la actividad." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
@@ -866,13 +866,13 @@ app.post("/api/catalogo-tramites", requireEditor, async (req, res) => {
     res.status(201).json(catalogoTramiteRowToItem(result.rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "No se pudo guardar el trámite en el catálogo." });
+    res.status(500).json({ error: "No se pudo guardar la actividad en el catálogo." });
   }
 });
 
 app.put("/api/catalogo-tramites/:id", requireEditor, async (req, res) => {
   const data = sanitizeCatalogoTramite(req.body || {});
-  if (!data) return res.status(400).json({ error: "Completa al menos el nombre del trámite." });
+  if (!data) return res.status(400).json({ error: "Completa al menos el nombre de la actividad." });
   try {
     const result = await pool.query(
       "UPDATE catalogo_tramites SET nombre=$1, dependencia=$2, ciudad=$3, updated_at=now() WHERE id=$4 RETURNING *",
