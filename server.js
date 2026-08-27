@@ -4,9 +4,14 @@ const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
 
 const PORT = process.env.PORT || 3000;
+// Estas dos son las únicas contraseñas que viven fuera de la app, en Render
+// (por si acaso — así nunca te puedes quedar sin poder entrar). Todas las
+// demás (para tu jefe, para cada área, etc.) las creas tú misma desde
+// "Accesos" dentro de la app, sin tocar Render.
 const EDIT_PASSWORD = process.env.EDIT_PASSWORD || "";
 const VIEW_PASSWORD = process.env.VIEW_PASSWORD || "";
 const COOKIE_SECRET = process.env.COOKIE_SECRET || "dev-secret-change-me";
@@ -15,6 +20,7 @@ const PAGO_TIPOS = ["gestion", "derechos"];
 const ESTATUS_VALIDOS = ["no_iniciado", "en_proceso", "completado"];
 const DURATION_UNITS = ["dias", "semanas", "meses"];
 const HITO_AREAS = ["comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+const ACCESO_ROLES = ["editor", "viewer", "area"];
 
 if (!EDIT_PASSWORD) {
   console.warn("AVISO: EDIT_PASSWORD no esta configurada. Nadie podra iniciar sesion con permiso de edicion.");
@@ -168,6 +174,23 @@ async function initDb() {
       fecha_nueva DATE,
       motivo TEXT NOT NULL DEFAULT 'manual',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  // Accesos: contraseñas que Karen crea ella misma desde la app (pantalla
+  // "Accesos"), cada una con su propio permiso (edición total, solo lectura,
+  // o un área específica). Las contraseñas nunca se guardan en texto plano,
+  // solo su hash — por eso no hay forma de "recuperarlas", solo de
+  // reemplazarlas por una nueva.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accesos (
+      id TEXT PRIMARY KEY,
+      etiqueta TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      rol TEXT NOT NULL,
+      area TEXT,
+      activo BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
 
@@ -516,48 +539,224 @@ app.use(cookieParser(COOKIE_SECRET));
 // para no exponer server.js ni otros archivos internos).
 app.get("/styles.css", (req, res) => res.sendFile(path.join(__dirname, "styles.css")));
 
-function getRole(req) {
-  const role = req.signedCookies && req.signedCookies.role;
-  return role === "editor" || role === "viewer" ? role : null;
+function isAreaRole(role) {
+  return typeof role === "string" && role.indexOf("area:") === 0 && HITO_AREAS.includes(role.slice(5));
 }
-function requireAuth(req, res, next) {
-  if (getRole(req)) return next();
+function parseSessionCookie(req) {
+  const raw = req.signedCookies && req.signedCookies.session;
+  if (!raw) return null;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (e) { return null; }
+  const role = parsed && parsed.role;
+  if (role === "editor" || role === "viewer" || isAreaRole(role)) {
+    return { role, label: (parsed.label && String(parsed.label)) || "", accesoId: parsed.accesoId || null };
+  }
+  return null;
+}
+// Revisa la cookie de sesión y, si viene de un acceso creado desde "Accesos"
+// (no una de las dos contraseñas maestras que viven en Render), lo revalida
+// contra la base de datos en cada solicitud. Así, si Karen desactiva un
+// acceso o le cambia el permiso, el efecto es inmediato — no hay que esperar
+// a que expire la sesión de esa persona.
+async function resolveSession(req) {
+  const cookie = parseSessionCookie(req);
+  if (!cookie) return null;
+  if (!cookie.accesoId) return cookie;
+  try {
+    const { rows } = await pool.query("SELECT * FROM accesos WHERE id = $1", [cookie.accesoId]);
+    if (!rows.length || !rows[0].activo) return null;
+    const row = rows[0];
+    const role = row.rol === "area" ? "area:" + row.area : row.rol;
+    return { role, label: row.etiqueta, accesoId: row.id };
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+async function requireAuth(req, res, next) {
+  const session = await resolveSession(req);
+  if (session) { req.session = session; return next(); }
   if (req.path.startsWith("/api/")) return res.status(401).json({ error: "No autorizado" });
   return res.redirect("/login");
 }
-function requireEditor(req, res, next) {
-  const role = getRole(req);
-  if (role === "editor") return next();
-  if (role === "viewer") return res.status(403).json({ error: "Estás en modo de solo lectura; no puedes hacer cambios." });
-  return res.status(401).json({ error: "No autorizado" });
+async function requireEditor(req, res, next) {
+  const session = await resolveSession(req);
+  if (!session) return res.status(401).json({ error: "No autorizado" });
+  req.session = session;
+  if (session.role === "editor") return next();
+  return res.status(403).json({ error: "Estás en modo de solo lectura; no puedes hacer cambios." });
+}
+// Para crear/editar hitos: el editor general siempre puede; alguien con
+// acceso de área solo puede si la actividad es (o ya era) de SU área.
+// Eliminar hitos sigue siendo exclusivo del editor general (requireEditor).
+async function requireEditorOrAreaHito(req, res, next) {
+  const session = await resolveSession(req);
+  if (!session) return res.status(401).json({ error: "No autorizado" });
+  req.session = session;
+  if (session.role === "editor") return next();
+  if (isAreaRole(session.role)) {
+    const scope = session.role.slice(5);
+    const bodyArea = req.body && req.body.area;
+    if (bodyArea !== scope) {
+      return res.status(403).json({ error: "Solo puedes capturar o editar actividades del área que te corresponde." });
+    }
+    req.areaScope = scope;
+    return next();
+  }
+  return res.status(403).json({ error: "Estás en modo de solo lectura; no puedes hacer cambios." });
 }
 
 /* ---------------- Auth routes ---------------- */
-app.get("/login", (req, res) => {
-  if (getRole(req)) return res.redirect("/");
+app.get("/login", async (req, res) => {
+  const session = await resolveSession(req);
+  if (session) return res.redirect("/");
   res.sendFile(path.join(__dirname, "login.html"));
 });
 
-app.post("/api/login", (req, res) => {
-  const password = String((req.body && req.body.password) || "");
-  let role = null;
-  if (EDIT_PASSWORD && password === EDIT_PASSWORD) role = "editor";
-  else if (VIEW_PASSWORD && password === VIEW_PASSWORD) role = "viewer";
-  if (!role) return res.status(401).json({ ok: false, error: "Contraseña incorrecta." });
-  res.cookie("role", role, {
+function setSessionCookie(res, role, label, accesoId) {
+  res.cookie("session", JSON.stringify({ role, label: label || "", accesoId: accesoId || null }), {
     signed: true, httpOnly: true, sameSite: "lax", secure: IS_PROD,
     maxAge: 1000 * 60 * 60 * 24 * 30
   });
-  return res.json({ ok: true, role });
+}
+
+app.post("/api/login", async (req, res) => {
+  const password = String((req.body && req.body.password) || "");
+  if (!password) return res.status(401).json({ ok: false, error: "Contraseña incorrecta." });
+  if (EDIT_PASSWORD && password === EDIT_PASSWORD) {
+    setSessionCookie(res, "editor", "Edición");
+    return res.json({ ok: true, role: "editor" });
+  }
+  if (VIEW_PASSWORD && password === VIEW_PASSWORD) {
+    setSessionCookie(res, "viewer", "Solo lectura");
+    return res.json({ ok: true, role: "viewer" });
+  }
+  try {
+    const { rows } = await pool.query("SELECT * FROM accesos WHERE activo = true");
+    for (const row of rows) {
+      const match = await bcrypt.compare(password, row.password_hash);
+      if (match) {
+        const role = row.rol === "area" ? "area:" + row.area : row.rol;
+        setSessionCookie(res, role, row.etiqueta, row.id);
+        return res.json({ ok: true, role });
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: "No se pudo validar la contraseña." });
+  }
+  return res.status(401).json({ ok: false, error: "Contraseña incorrecta." });
 });
 
 app.post("/api/logout", (req, res) => {
-  res.clearCookie("role");
+  res.clearCookie("session");
   res.json({ ok: true });
 });
 
 app.get("/api/session", requireAuth, (req, res) => {
-  res.json({ role: getRole(req) });
+  res.json({ role: req.session.role, label: req.session.label });
+});
+
+/* ---------------- Accesos: contraseñas que Karen administra ella misma ---------------- */
+function generateReadablePassword() {
+  // Sin 0/O/1/l/I para que no haya confusión al leerla o transcribirla a mano.
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = crypto.randomBytes(10);
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+function sanitizeAcceso(body) {
+  const etiqueta = String((body && body.etiqueta) || "").trim();
+  const rol = ACCESO_ROLES.includes(body && body.rol) ? body.rol : null;
+  if (!etiqueta || !rol) return null;
+  let area = null;
+  if (rol === "area") {
+    area = HITO_AREAS.includes(body.area) ? body.area : null;
+    if (!area) return null;
+  }
+  return { etiqueta, rol, area };
+}
+function accesoRowToItem(row) {
+  return {
+    id: row.id,
+    etiqueta: row.etiqueta,
+    rol: row.rol,
+    area: row.area,
+    activo: row.activo,
+    createdAt: row.created_at
+  };
+}
+
+app.get("/api/accesos", requireEditor, async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM accesos ORDER BY created_at DESC");
+    res.json(rows.map(accesoRowToItem));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudieron cargar los accesos." });
+  }
+});
+
+app.get("/api/accesos/generar-password", requireEditor, (req, res) => {
+  res.json({ password: generateReadablePassword() });
+});
+
+app.post("/api/accesos", requireEditor, async (req, res) => {
+  const data = sanitizeAcceso(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa la etiqueta, el permiso y, si aplica, el área." });
+  const password = String((req.body && req.body.password) || "");
+  if (password.length < 4) return res.status(400).json({ error: "La contraseña debe tener al menos 4 caracteres." });
+  const id = crypto.randomUUID();
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO accesos (id, etiqueta, password_hash, rol, area) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [id, data.etiqueta, hash, data.rol, data.area]
+    );
+    res.status(201).json(accesoRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo guardar el acceso." });
+  }
+});
+
+app.put("/api/accesos/:id", requireEditor, async (req, res) => {
+  const data = sanitizeAcceso(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa la etiqueta, el permiso y, si aplica, el área." });
+  const activo = (req.body && req.body.activo) !== false;
+  const password = String((req.body && req.body.password) || "");
+  try {
+    let result;
+    if (password) {
+      if (password.length < 4) return res.status(400).json({ error: "La contraseña debe tener al menos 4 caracteres." });
+      const hash = await bcrypt.hash(password, 10);
+      result = await pool.query(
+        `UPDATE accesos SET etiqueta=$1, rol=$2, area=$3, activo=$4, password_hash=$5, updated_at=now() WHERE id=$6 RETURNING *`,
+        [data.etiqueta, data.rol, data.area, activo, hash, req.params.id]
+      );
+    } else {
+      result = await pool.query(
+        `UPDATE accesos SET etiqueta=$1, rol=$2, area=$3, activo=$4, updated_at=now() WHERE id=$5 RETURNING *`,
+        [data.etiqueta, data.rol, data.area, activo, req.params.id]
+      );
+    }
+    if (!result.rows.length) return res.status(404).json({ error: "Acceso no encontrado." });
+    res.json(accesoRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo actualizar el acceso." });
+  }
+});
+
+app.delete("/api/accesos/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM accesos WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar el acceso." });
+  }
 });
 
 /* ---------------- App protegida ---------------- */
@@ -788,7 +987,7 @@ app.delete("/api/subelementos/:id", requireEditor, async (req, res) => {
 });
 
 /* ---------------- Hitos (otras áreas: comercial, obra, due diligence, etc.) ---------------- */
-app.post("/api/hitos", requireEditor, async (req, res) => {
+app.post("/api/hitos", requireEditorOrAreaHito, async (req, res) => {
   const data = sanitizeHito(req.body || {});
   if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término de la actividad." });
   const id = crypto.randomUUID();
@@ -806,14 +1005,18 @@ app.post("/api/hitos", requireEditor, async (req, res) => {
   }
 });
 
-app.put("/api/hitos/:id", requireEditor, async (req, res) => {
+app.put("/api/hitos/:id", requireEditorOrAreaHito, async (req, res) => {
   const data = sanitizeHito(req.body || {}, req.params.id);
   if (!data) return res.status(400).json({ error: "Completa el proyecto, el nombre y la fecha de término de la actividad." });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const prevRes = await client.query("SELECT fecha_inicio, fecha FROM hitos WHERE id=$1 FOR UPDATE", [req.params.id]);
+    const prevRes = await client.query("SELECT fecha_inicio, fecha, area FROM hitos WHERE id=$1 FOR UPDATE", [req.params.id]);
     if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Actividad no encontrada." }); }
+    if (req.areaScope && prevRes.rows[0].area !== req.areaScope) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ error: "Esa actividad no es de tu área — no la puedes editar." });
+    }
     const prevInicio = dateStr(prevRes.rows[0].fecha_inicio);
     const prevFecha = dateStr(prevRes.rows[0].fecha);
 

@@ -485,6 +485,9 @@
   }
   .readonly-banner.show { display: flex; }
   body.role-viewer .requires-edit { display: none !important; }
+  /* Acceso de área: reactiva puntualmente un botón que normalmente el modo
+     de solo lectura esconde (ver boot() en index.html). */
+  body.role-viewer .requires-edit.force-show { display: inline-flex !important; }
 
   /* ---------- Área filter (línea de tiempo) ---------- */
   .area-filter {

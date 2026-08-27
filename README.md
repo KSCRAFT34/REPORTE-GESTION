@@ -7,7 +7,8 @@ información, y queda protegida con una contraseña.
 
 ## Qué incluye
 
-- Una sola URL para todo el equipo, con dos niveles de acceso (ver abajo).
+- Una sola URL para todo el equipo, con distintos niveles de acceso que tú
+  misma administras desde la pantalla de **Accesos** (ver abajo).
 - Proyectos, trámites con costos de gestión/derechos, presupuesto y control de pagos.
 - Pagos reales (estado de cuenta) separados de la proyección de costos.
 - Subelementos dentro de un trámite (por ejemplo, los distintos pasos que exige una
@@ -15,7 +16,10 @@ información, y queda protegida con una contraseña.
 - **Áreas** (comercial, obra, diseño, administración, due diligence,
   escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
   actividad igual que un trámite — con fecha de inicio y término, responsable, y su
-  propio color por área — en vez de una fecha suelta.
+  propio color por área — en vez de una fecha suelta. Se puede filtrar por área
+  y por estado (Vigente, Por vencer, Urgente, Vencido, Completado), con
+  botones "Todas"/"Ninguna" en cada filtro para no tener que ir marcando o
+  desmarcando uno por uno.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se
@@ -56,22 +60,65 @@ información, y queda protegida con una contraseña.
 - Base de datos PostgreSQL (la crea Render automáticamente).
 - Exportar/Importar en JSON como respaldo manual.
 
-## Los dos niveles de acceso: edición y solo lectura
+## Los niveles de acceso: edición, solo lectura y por área
 
 La app pide una contraseña para entrar, y **según cuál escribas, entras con un
-permiso distinto**:
+permiso distinto**. Todas comparten la misma URL — nadie necesita un usuario,
+solo la contraseña que le corresponde.
 
-- **Contraseña de edición**: puede capturar, editar y borrar todo (proyectos,
-  trámites, pagos, subelementos, actividades de áreas). Es la que usas tú y quien más necesite
-  actualizar la información.
-- **Contraseña de solo lectura**: entra a la misma página, ve exactamente la misma
-  información en tiempo real, pero no puede cambiar nada — los botones de agregar,
-  editar y borrar ni siquiera aparecen, y aunque alguien intentara forzarlo, el
-  servidor rechaza cualquier cambio de todos modos.
+Hay dos contraseñas "maestras", fijas, que se configuran una sola vez al
+desplegar la app (Paso 2 más abajo):
 
-Así que para compartir con tu jefe o sus socios, les das la URL y la contraseña de
-solo lectura: ven todo actualizado, sin riesgo de que muevan algo sin querer.
-Ambas contraseñas las defines tú al momento de desplegar (Paso 2).
+- **Contraseña de edición** (`EDIT_PASSWORD`): puede capturar, editar y borrar
+  todo (proyectos, trámites, pagos, subelementos, actividades de áreas,
+  catálogos, proveedores), y además es la única que puede entrar a la pantalla
+  de **Accesos** descrita abajo. Es la que usas tú.
+- **Contraseña de solo lectura** (`VIEW_PASSWORD`): entra a la misma página, ve
+  exactamente la misma información en tiempo real, pero no puede cambiar nada.
+  Es tu contraseña de respaldo por si algo pasara con la pantalla de Accesos;
+  para el uso normal del día a día, mejor crea accesos individuales (ver abajo).
+
+### La pantalla de Accesos — tú creas y controlas las demás contraseñas
+
+Ya no hace falta tocar nada en Render para dar de alta una contraseña nueva
+para tu jefe, para Comercial, para Diseño, etc. Con la contraseña de edición,
+en el menú izquierdo aparece **Accesos**: ahí puedes crear, editar, desactivar
+o eliminar tú misma cuantas contraseñas necesites, cada una con el permiso que
+le corresponda:
+
+1. Entra con tu contraseña de edición y da clic en **Accesos** (menú
+   izquierdo).
+2. Da clic en el formulario de arriba: ponle un **nombre** al acceso (por
+   ejemplo "Jefe", "Comercial", "Ana - Diseño" — el nombre que quieras, solo
+   para identificarlo tú), elige el **permiso**:
+   - **Solo lectura** — ve todo, no puede cambiar nada.
+   - **Un área** — además de ver todo, puede capturar y editar (no eliminar)
+     las actividades de esa área específica en "Áreas". Elige cuál área en el
+     campo que aparece.
+   - **Edición total** — mismo permiso que tu propia contraseña; úsalo con
+     cuidado y solo para quien de verdad necesite editar todo.
+3. Escribe una contraseña o da clic en **Generar** para que la app te
+   proponga una segura y fácil de transcribir a mano. Cópiala y compártela
+   con esa persona por el medio que prefieras (WhatsApp, correo, etc.) — la
+   app no la vuelve a mostrar después, así que anótala antes de cerrar.
+4. Da clic en **Crear acceso**. Ya está: esa persona puede entrar a la misma
+   URL con esa contraseña y tiene el permiso que le diste.
+
+Para **quitarle el acceso a alguien** no hace falta avisarle ni cambiarle
+nada: en la tabla de la misma pantalla, da clic en el botón "Activo" de su
+fila para desactivarlo (queda "Inactivo" — puedes reactivarlo después con el
+mismo botón), o en el bote de basura para eliminarlo por completo. El efecto
+es inmediato: si esa persona está usando la app en ese momento, en cuanto
+vuelva a hacer clic en algo se le pedirá iniciar sesión de nuevo.
+
+Con el lápiz puedes editar el nombre, el permiso, el área o la contraseña de
+un acceso ya creado (deja el campo de contraseña en blanco si no quieres
+cambiarla).
+
+Así que para compartir con tu jefe o sus socios, les creas un acceso de solo
+lectura: ven todo actualizado, sin riesgo de que muevan algo sin querer. Y
+para que alguien de Comercial o Diseño mantenga sus propias fechas, le creas
+un acceso de esa área.
 
 ## Antes de empezar: qué esperar del plan gratuito de Render
 
@@ -119,8 +166,10 @@ carpetas** (no hay que crear ninguna carpeta `views` ni `public`):
    - `EDIT_PASSWORD`: la contraseña de edición (para ti y quien capture información).
    - `VIEW_PASSWORD`: la contraseña de solo lectura (para compartir con tu jefe/socios).
 
-   Escribe dos contraseñas distintas y guárdalas en un lugar seguro — son las que
-   vas a compartir después, cada una con quien corresponda.
+   Escribe dos contraseñas distintas y guárdalas en un lugar seguro: la de
+   edición es la que usarás tú para entrar y, desde ahí, crear el resto de los
+   accesos (para tu jefe, para cada área, etc.) sin volver a tocar Render —
+   ver la sección "Los niveles de acceso" más abajo.
 5. Confirma con **Apply** / **Deploy**. La primera vez tarda unos minutos
    mientras instala todo, y la base de datos arranca ya con tus 6 proyectos y
    4 trámites reales cargados.

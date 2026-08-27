@@ -40,6 +40,10 @@
       <button type="button" class="sidenav-subitem" id="cat-nav-tramites">Actividad</button>
       <button type="button" class="sidenav-subitem" id="cat-nav-proveedores">Proveedores</button>
     </div>
+    <button type="button" class="sidenav-item" id="nav-accesos" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Accesos
+    </button>
   </nav>
   <div class="app-main">
 <div class="wrap">
@@ -74,7 +78,7 @@
 
   <div class="readonly-banner" id="readonly-banner">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M12 15v2"/><path d="M12 7v5"/><circle cx="12" cy="12" r="10"/></svg>
-    <span>Estás en modo de solo lectura: puedes ver todo, pero no hacer cambios.</span>
+    <span id="readonly-banner-text">Estás en modo de solo lectura: puedes ver todo, pero no hacer cambios.</span>
   </div>
 
   <div class="net-banner" id="net-banner">
@@ -265,6 +269,16 @@
       <button type="button" class="link-btn" id="btn-hito-area-ninguna">Ninguna</button>
       <span class="area-filter-label" style="margin-left:18px">Proyecto:</span>
       <select id="hito-filtro-proyecto" style="max-width:220px"><option value="">Todos los proyectos</option></select>
+    </div>
+    <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
+      <span class="area-filter-label">Estado:</span>
+      <label><input type="checkbox" checked data-hito-estado="vigente"> Vigente</label>
+      <label><input type="checkbox" checked data-hito-estado="porVencer"> Por vencer</label>
+      <label><input type="checkbox" checked data-hito-estado="urgente"> Urgente</label>
+      <label><input type="checkbox" checked data-hito-estado="vencido"> Vencido</label>
+      <label><input type="checkbox" checked data-hito-estado="completado"> Completado</label>
+      <button type="button" class="link-btn" id="btn-hito-estado-todas" style="margin-left:10px">Todas</button>
+      <button type="button" class="link-btn" id="btn-hito-estado-ninguna">Ninguna</button>
     </div>
 
     <div class="panel">
@@ -999,6 +1013,95 @@
     <button type="button" class="btn" id="dlg-proveedores-done">Cerrar</button>
   </div>
 </dialog>
+
+<!-- Accesos: contraseñas de edición, solo lectura o por área -->
+<dialog id="dlg-accesos" data-size="lg">
+  <div class="dlg-head">
+    <h2>Accesos y contraseñas</h2>
+    <button type="button" class="icon-btn" id="dlg-accesos-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Crea una contraseña para cada persona o área. Elige qué puede hacer con ella: editar todo, solo consultar, o capturar y editar nada más las actividades de un área. Comparte la contraseña por el medio que prefieras; una vez guardada no se puede volver a ver, solo generar una nueva.</p>
+    <div class="requires-edit">
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0" id="acc-form-title">Nuevo acceso</div>
+      <div class="form-grid" style="margin-bottom:6px">
+        <div class="field">
+          <label for="acc-etiqueta">Nombre del acceso <span class="req">*</span></label>
+          <input type="text" id="acc-etiqueta" placeholder="p. ej. Equipo Comercial, Jefe, Diseño…">
+        </div>
+        <div class="field">
+          <label for="acc-rol">Permiso <span class="req">*</span></label>
+          <select id="acc-rol">
+            <option value="viewer">Solo lectura — puede ver todo, no puede hacer cambios</option>
+            <option value="area">Un área — puede capturar y editar solo esa área en "Áreas"</option>
+            <option value="editor">Edición total — puede ver y editar todo</option>
+          </select>
+        </div>
+        <div class="field" id="acc-area-field">
+          <label for="acc-area">Área</label>
+          <select id="acc-area"></select>
+        </div>
+        <div class="field span-2">
+          <label for="acc-password">Contraseña <span class="req">*</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="acc-password" placeholder="Escríbela o genera una" style="flex:1">
+            <button type="button" class="btn" id="btn-acc-generar" style="white-space:nowrap">Generar</button>
+          </div>
+          <div class="field-hint" id="acc-password-hint">Déjala en blanco al editar para no cambiarla.</div>
+        </div>
+      </div>
+      <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+        <div class="status-msg" id="acc-status" style="visibility:hidden;margin:0"></div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn" id="btn-acc-cancel-edit" style="display:none">Cancelar edición</button>
+          <button type="button" class="btn btn-primary" id="btn-acc-add">Crear acceso</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-label">Accesos creados</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Permiso</th>
+            <th>Estado</th>
+            <th>Creado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="acc-body"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="acc-empty" style="display:none">
+      <div>Aún no hay accesos creados. Usa el formulario de arriba para crear el primero.</div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-accesos-done">Cerrar</button>
+  </div>
+</dialog>
+
+<!-- Accesos: confirmar eliminación -->
+<dialog id="dlg-delete-acceso" data-size="sm">
+  <div class="dlg-head">
+    <h2>Eliminar acceso</h2>
+    <button type="button" class="icon-btn" id="dlg-delete-acceso-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+    <p id="dlg-delete-acceso-msg" style="margin:0;color:var(--text-secondary)"></p>
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-delete-acceso-cancel">Cerrar</button>
+    <button type="button" class="btn btn-danger" id="dlg-delete-acceso-confirm">Eliminar</button>
+  </div>
+</dialog>
+
 <datalist id="dl-prov-tipos">
   <option value="Gestor">
   <option value="Anticipo Gestor">
@@ -1020,6 +1123,7 @@
 
   var state = {
     role: null,
+    areaScope: null,
     proyectos: [],
     tramites: [],
     pagos: [],
@@ -1029,6 +1133,9 @@
     editingCatalogoTramiteId: null,
     proveedores: [],
     historialFechas: [],
+    accesos: [],
+    editingAccesoId: null,
+    deletingAccesoId: null,
     filters: {
       search: "", ciudad: "", proyectoId: "", estado: ""
     },
@@ -1039,7 +1146,7 @@
     deletingProyectoId: null,
     editingHitoId: null,
     deletingHitoId: null,
-    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true } },
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
     timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true } }
   };
@@ -2392,6 +2499,7 @@
     return state.hitos.filter(function (h) {
       if (f.proyectoId && h.proyectoId !== f.proyectoId) return false;
       if (!f.areas[h.area]) return false;
+      if (!f.estados[computeState(h)]) return false;
       return true;
     });
   }
@@ -2404,6 +2512,7 @@
     tbody.innerHTML = rows.map(function (h) {
       var st = computeState(h);
       var dep = dependeRefLabel(h.dependeDe);
+      var canOwn = state.role === "editor" || (state.role === "area" && h.area === state.areaScope);
       return '<tr>' +
         '<td class="cell-tramite"><span class="t-name">' + escapeHtml(h.nombre) + '</span>' +
           (h.notas ? '<span class="t-type">' + escapeHtml(h.notas) + '</span>' : '') + '</td>' +
@@ -2415,16 +2524,16 @@
         '<td class="cell-date">' + fmtDate(h.fechaVencimiento) + '</td>' +
         '<td>' + escapeHtml(h.responsable || "—") + '</td>' +
         '<td>' + (dep ? escapeHtml(dep) : '—') + '</td>' +
-        '<td><button type="button" class="pill-toggle requires-edit ' + (h.incluirLineaTiempo === false ? 'off' : 'on') + ' hito-linea-toggle-btn" data-id="' + h.id + '">' +
+        '<td><button type="button" class="pill-toggle ' + (canOwn ? '' : 'requires-edit ') + (h.incluirLineaTiempo === false ? 'off' : 'on') + ' hito-linea-toggle-btn" data-id="' + h.id + '">' +
           (h.incluirLineaTiempo === false
             ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 11 7 11 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 7 11 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg> Oculto'
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg> Visible') +
           '</button>' +
           '<span class="pill-toggle-static ' + (h.incluirLineaTiempo === false ? 'off' : 'on') + '">' + (h.incluirLineaTiempo === false ? 'Oculto' : 'Visible') + '</span>' +
         '</td>' +
-        '<td><div class="row-actions requires-edit">' +
-          '<button class="icon-btn edit-hito-btn" data-id="' + h.id + '" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
-          '<button class="icon-btn danger del-hito-btn" data-id="' + h.id + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
+        '<td><div class="row-actions">' +
+          '<button class="icon-btn edit-hito-btn' + (canOwn ? '' : ' requires-edit') + '" data-id="' + h.id + '" aria-label="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>' +
+          '<button class="icon-btn danger del-hito-btn requires-edit" data-id="' + h.id + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>' +
         '</div></td>' +
       '</tr>';
     }).join("");
@@ -2467,6 +2576,21 @@
   }
   document.getElementById("btn-hito-area-todas").addEventListener("click", function () { setAllHitoAreaCheckboxes(true); });
   document.getElementById("btn-hito-area-ninguna").addEventListener("click", function () { setAllHitoAreaCheckboxes(false); });
+  document.querySelectorAll('#view-hitos .area-filter input[data-hito-estado]').forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      state.hitoViewFilters.estados[cb.dataset.hitoEstado] = cb.checked;
+      renderHitosView();
+    });
+  });
+  function setAllHitoEstadoCheckboxes(checked) {
+    document.querySelectorAll('#view-hitos .area-filter input[data-hito-estado]').forEach(function (cb) {
+      cb.checked = checked;
+      state.hitoViewFilters.estados[cb.dataset.hitoEstado] = checked;
+    });
+    renderHitosView();
+  }
+  document.getElementById("btn-hito-estado-todas").addEventListener("click", function () { setAllHitoEstadoCheckboxes(true); });
+  document.getElementById("btn-hito-estado-ninguna").addEventListener("click", function () { setAllHitoEstadoCheckboxes(false); });
 
   function setHitoFormStatus(msg, ok) {
     var el = document.getElementById("hito-form-status");
@@ -2481,7 +2605,8 @@
     document.getElementById("dlg-hitos-title").textContent = h ? "Editar actividad" : "Nueva actividad";
     populateHitoProyectoSelect();
     document.getElementById("hito-proyecto").value = h ? h.proyectoId : (state.hitoViewFilters.proyectoId || "");
-    document.getElementById("hito-area").value = h ? h.area : "comercial";
+    document.getElementById("hito-area").value = state.role === "area" ? state.areaScope : (h ? h.area : "comercial");
+    document.getElementById("hito-area").disabled = state.role === "area";
     populateHitoNombreSelect(h ? h.nombre : "");
     document.getElementById("hito-nombre-add-form").style.display = "none";
     document.getElementById("hito-nombre-new").value = "";
@@ -2716,26 +2841,31 @@
   document.getElementById("nav-tramites").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
+    document.getElementById("dlg-accesos").close();
     showView("tramites");
   });
   document.getElementById("nav-hitos").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
+    document.getElementById("dlg-accesos").close();
     showView("hitos");
   });
   document.getElementById("nav-timeline").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
+    document.getElementById("dlg-accesos").close();
     showView("timeline");
   });
   document.getElementById("nav-historial").addEventListener("click", function () {
     document.getElementById("dlg-catalogo-tramites").close();
     document.getElementById("dlg-proveedores").close();
+    document.getElementById("dlg-accesos").close();
     showView("historial");
   });
   document.getElementById("cat-nav-proyectos").addEventListener("click", function () { openProyectoForm(null); });
   document.getElementById("cat-nav-tramites").addEventListener("click", function () { openCatalogoTramites(); });
   document.getElementById("cat-nav-proveedores").addEventListener("click", function () { openProveedores(); });
+  document.getElementById("nav-accesos").addEventListener("click", function () { openAccesos(); });
 
   /* ---------------- Catálogo de trámites (lista maestra) ---------------- */
   var dlgCatalogoTramites = document.getElementById("dlg-catalogo-tramites");
@@ -2906,12 +3036,205 @@
       .catch(function (err) { status.textContent = err.message || "No se pudo guardar."; status.className = "status-msg err"; });
   });
 
+  /* ---------------- Accesos (contraseñas por persona/área) ---------------- */
+  var ACC_ROL_LABEL = { editor: "Edición total", viewer: "Solo lectura", area: "Área" };
+  function accRolDisplay(a) {
+    if (a.rol === "area") return "Área: " + (AREA_LABELS[a.area] || a.area);
+    return ACC_ROL_LABEL[a.rol] || a.rol;
+  }
+  var dlgAccesos = document.getElementById("dlg-accesos");
+  var dlgDeleteAcceso = document.getElementById("dlg-delete-acceso");
+  var ACCESO_AREAS = ["comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+  function populateAccAreaSelect() {
+    var sel = document.getElementById("acc-area");
+    sel.innerHTML = ACCESO_AREAS.map(function (a) { return '<option value="' + a + '">' + (AREA_LABELS[a] || a) + '</option>'; }).join("");
+  }
+  function syncAccAreaFieldVisibility() {
+    var rol = document.getElementById("acc-rol").value;
+    document.getElementById("acc-area-field").style.display = rol === "area" ? "" : "none";
+  }
+  function openAccesos() {
+    resetAccesoForm();
+    var status = document.getElementById("acc-status");
+    status.style.visibility = "visible";
+    status.textContent = "Cargando…";
+    status.className = "status-msg";
+    dlgAccesos.showModal();
+    api("/api/accesos").then(function (data) {
+      state.accesos = data.accesos || data || [];
+      status.style.visibility = "hidden";
+      renderAccesosTable();
+    }).catch(function (err) {
+      status.textContent = err.message || "No se pudieron cargar los accesos.";
+      status.className = "status-msg err";
+    });
+  }
+  function renderAccesosTable() {
+    var rows = state.accesos.slice().sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+    var tbody = document.getElementById("acc-body");
+    document.getElementById("acc-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (a) {
+      return '<tr>' +
+        '<td>' + escapeHtml(a.etiqueta) + '</td>' +
+        '<td>' + escapeHtml(accRolDisplay(a)) + '</td>' +
+        '<td><button type="button" class="pill-toggle ' + (a.activo ? 'on' : 'off') + ' acc-activo-toggle-btn" data-id="' + a.id + '">' +
+          '<span class="pill-toggle-static ' + (a.activo ? 'on' : 'off') + '">' + (a.activo ? 'Activo' : 'Inactivo') + '</span>' +
+        '</button></td>' +
+        '<td>' + fmtDate((a.createdAt || "").slice(0, 10)) + '</td>' +
+        '<td><div class="row-actions"><button class="icon-btn edit-acc-btn" data-id="' + a.id + '" aria-label="Editar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>' +
+        '</button><button class="icon-btn danger del-acc-btn" data-id="' + a.id + '" aria-label="Eliminar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+        '</button></div></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".edit-acc-btn").forEach(function (b) {
+      b.addEventListener("click", function () { openEditAcceso(b.dataset.id); });
+    });
+    tbody.querySelectorAll(".del-acc-btn").forEach(function (b) {
+      b.addEventListener("click", function () { openDeleteAcceso(b.dataset.id); });
+    });
+    tbody.querySelectorAll(".acc-activo-toggle-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var a = state.accesos.find(function (x) { return x.id === b.dataset.id; });
+        if (!a) return;
+        var togglePayload = { etiqueta: a.etiqueta, rol: a.rol, activo: !a.activo };
+        if (a.rol === "area") togglePayload.area = a.area;
+        api("/api/accesos/" + a.id, { method: "PUT", body: JSON.stringify(togglePayload) })
+          .then(function () { return api("/api/accesos"); })
+          .then(function (data) { state.accesos = data.accesos || data || []; renderAccesosTable(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo actualizar el acceso."); });
+      });
+    });
+  }
+  function resetAccesoForm() {
+    state.editingAccesoId = null;
+    document.getElementById("acc-etiqueta").value = "";
+    document.getElementById("acc-rol").value = "viewer";
+    populateAccAreaSelect();
+    document.getElementById("acc-password").value = "";
+    document.getElementById("acc-password-hint").textContent = "La contraseña se muestra una sola vez aquí; anótala o compártela antes de cerrar.";
+    document.getElementById("acc-form-title").textContent = "Nuevo acceso";
+    document.getElementById("btn-acc-add").textContent = "Crear acceso";
+    document.getElementById("btn-acc-cancel-edit").style.display = "none";
+    document.getElementById("acc-status").style.visibility = "hidden";
+    syncAccAreaFieldVisibility();
+  }
+  function openEditAcceso(id) {
+    var a = state.accesos.find(function (x) { return x.id === id; });
+    if (!a) return;
+    state.editingAccesoId = id;
+    document.getElementById("acc-etiqueta").value = a.etiqueta || "";
+    document.getElementById("acc-rol").value = a.rol;
+    populateAccAreaSelect();
+    if (a.rol === "area") document.getElementById("acc-area").value = a.area;
+    syncAccAreaFieldVisibility();
+    document.getElementById("acc-password").value = "";
+    document.getElementById("acc-password-hint").textContent = "Déjala en blanco para conservar la contraseña actual, o escribe/genera una nueva para cambiarla.";
+    document.getElementById("acc-form-title").textContent = "Editar acceso";
+    document.getElementById("btn-acc-add").textContent = "Guardar cambios";
+    document.getElementById("btn-acc-cancel-edit").style.display = "";
+    document.getElementById("acc-status").style.visibility = "hidden";
+    document.getElementById("acc-etiqueta").focus();
+    document.getElementById("acc-etiqueta").scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  function openDeleteAcceso(id) {
+    var a = state.accesos.find(function (x) { return x.id === id; });
+    if (!a) return;
+    state.deletingAccesoId = id;
+    document.getElementById("dlg-delete-acceso-msg").innerHTML = "¿Eliminar el acceso “<strong>" + escapeHtml(a.etiqueta) + "</strong>”? Quien lo esté usando perderá el acceso de inmediato. Esta acción no se puede deshacer.";
+    dlgDeleteAcceso.showModal();
+  }
+  document.getElementById("acc-rol").addEventListener("change", syncAccAreaFieldVisibility);
+  document.getElementById("btn-acc-generar").addEventListener("click", function () {
+    api("/api/accesos/generar-password").then(function (data) {
+      document.getElementById("acc-password").value = data.password;
+    }).catch(function (err) { showBanner(err.message || "No se pudo generar la contraseña."); });
+  });
+  document.getElementById("dlg-accesos-close").addEventListener("click", function () { dlgAccesos.close(); });
+  document.getElementById("dlg-accesos-done").addEventListener("click", function () { dlgAccesos.close(); });
+  document.getElementById("btn-acc-cancel-edit").addEventListener("click", function () { resetAccesoForm(); });
+  document.getElementById("dlg-delete-acceso-close").addEventListener("click", function () { dlgDeleteAcceso.close(); });
+  document.getElementById("dlg-delete-acceso-cancel").addEventListener("click", function () { dlgDeleteAcceso.close(); });
+  document.getElementById("dlg-delete-acceso-confirm").addEventListener("click", function () {
+    var id = state.deletingAccesoId;
+    if (!id) return;
+    api("/api/accesos/" + id, { method: "DELETE" })
+      .then(function () { return api("/api/accesos"); })
+      .then(function (data) {
+        state.accesos = data.accesos || data || [];
+        dlgDeleteAcceso.close();
+        renderAccesosTable();
+      })
+      .catch(function (err) { showBanner(err.message || "No se pudo eliminar el acceso."); });
+  });
+  document.getElementById("btn-acc-add").addEventListener("click", function () {
+    var status = document.getElementById("acc-status");
+    var etiqueta = document.getElementById("acc-etiqueta").value.trim();
+    var rol = document.getElementById("acc-rol").value;
+    var password = document.getElementById("acc-password").value;
+    status.style.visibility = "visible";
+    if (!etiqueta) {
+      status.textContent = "Ponle un nombre al acceso (por ejemplo, la persona o el área).";
+      status.className = "status-msg err";
+      return;
+    }
+    if (!state.editingAccesoId && !password) {
+      status.textContent = "Escribe una contraseña o usa \"Generar\".";
+      status.className = "status-msg err";
+      return;
+    }
+    if (password && password.length < 4) {
+      status.textContent = "La contraseña debe tener al menos 4 caracteres.";
+      status.className = "status-msg err";
+      return;
+    }
+    var payload = { etiqueta: etiqueta, rol: rol };
+    if (rol === "area") payload.area = document.getElementById("acc-area").value;
+    if (password) payload.password = password;
+    var isEdit = !!state.editingAccesoId;
+    if (isEdit) {
+      var existing = state.accesos.find(function (x) { return x.id === state.editingAccesoId; });
+      payload.activo = existing ? existing.activo : true;
+    }
+    var req = isEdit
+      ? api("/api/accesos/" + state.editingAccesoId, { method: "PUT", body: JSON.stringify(payload) })
+      : api("/api/accesos", { method: "POST", body: JSON.stringify(payload) });
+    req.then(function () { return api("/api/accesos"); })
+      .then(function (data) {
+        state.accesos = data.accesos || data || [];
+        status.textContent = isEdit ? "Acceso actualizado." : "Acceso creado.";
+        status.className = "status-msg ok";
+        resetAccesoForm();
+        status.style.visibility = "visible";
+        renderAccesosTable();
+      })
+      .catch(function (err) { status.textContent = err.message || "No se pudo guardar."; status.className = "status-msg err"; });
+  });
+
   /* ---------------- Arranque ---------------- */
   function boot() {
     api("/api/session").then(function (s) {
-      state.role = s.role;
-      document.body.classList.toggle("role-viewer", state.role === "viewer");
-      document.getElementById("readonly-banner").classList.toggle("show", state.role === "viewer");
+      var rawRole = s.role || "";
+      var isArea = rawRole.indexOf("area:") === 0;
+      state.role = isArea ? "area" : rawRole;
+      state.areaScope = isArea ? rawRole.slice(5) : null;
+      state.label = s.label || "";
+      var isReadOnlyBase = state.role === "viewer" || state.role === "area";
+      document.body.classList.toggle("role-viewer", isReadOnlyBase);
+      var banner = document.getElementById("readonly-banner");
+      var bannerText = document.getElementById("readonly-banner-text");
+      var hasCustomLabel = state.label && state.label !== "Solo lectura" && state.label !== "Edición";
+      var quienEntro = hasCustomLabel ? "Entraste como \"" + state.label + "\"" : "Entraste";
+      if (state.role === "area") {
+        bannerText.textContent = quienEntro + " — acceso de área (" + (AREA_LABELS[state.areaScope] || state.areaScope) + "): puedes capturar y editar las actividades de esa área en \"Áreas\"; el resto de la información es de solo lectura.";
+      } else if (state.role === "viewer") {
+        bannerText.textContent = (hasCustomLabel ? quienEntro + ": estás" : "Estás") + " en modo de solo lectura: puedes ver todo, pero no hacer cambios.";
+      }
+      banner.classList.toggle("show", isReadOnlyBase);
+      document.getElementById("nav-accesos").style.display = state.role === "editor" ? "" : "none";
+      document.getElementById("btn-add-hito").classList.toggle("force-show", state.role === "area");
+      document.getElementById("btn-hito-nombre-add-toggle").style.display = state.role === "area" ? "none" : "";
       return refreshAll();
     }).catch(function () { window.location.href = "/login"; });
   }
