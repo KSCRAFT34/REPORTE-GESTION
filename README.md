@@ -40,6 +40,10 @@ información, y queda protegida con una contraseña.
   Administración, Due diligence, Escrituración, Otro) — con un botón por
   trámite/subelemento/actividad para decidir si aparece ahí. El dashboard conserva
   la tabla y los filtros de trámites; la parte visual de Gantt vive solo aquí.
+  Tiene un selector de **Vista** (Mensual, Trimestral o Anual) para comprimir
+  proyectos largos y que se puedan leer de un vistazo, y controles de **Zoom**
+  (acercar, alejar, restablecer) para ajustar qué tan ancha se ve la línea de
+  tiempo — útil cuando aun así se necesita ver el detalle día a día de un tramo.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir

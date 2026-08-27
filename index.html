@@ -343,6 +343,25 @@
           <div class="hint" id="tl-hint">0 elementos</div>
         </div>
       </div>
+      <div class="area-filter">
+        <span class="area-filter-label">Vista:</span>
+        <select id="tl-vista" style="max-width:140px">
+          <option value="mensual">Mensual</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="anual">Anual</option>
+        </select>
+        <span class="area-filter-label" style="margin-left:18px">Zoom:</span>
+        <div style="display:inline-flex;align-items:center;gap:6px">
+          <button type="button" class="icon-btn" id="btn-tl-zoom-out" aria-label="Alejar" title="Alejar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <span class="hint" id="tl-zoom-pct" style="min-width:40px;text-align:center">100%</span>
+          <button type="button" class="icon-btn" id="btn-tl-zoom-in" aria-label="Acercar" title="Acercar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button type="button" class="link-btn" id="btn-tl-zoom-reset" style="margin-left:4px">Restablecer</button>
+        </div>
+      </div>
       <div class="area-filter" id="area-filter">
         <span class="area-filter-label">Mostrar:</span>
         <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
@@ -1148,7 +1167,7 @@
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true } }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "mensual", zoom: 1 }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1606,51 +1625,68 @@
     });
     var groupNames = AREA_ORDER.filter(function (a) { return groups[a] && groups[a].length; });
 
-    // Eje "comprimido": solo se muestran los meses en los que de verdad hubo
-    // actividad (algún trámite/hito en curso ese mes) — los meses vacíos de
-    // por medio se eliminan para que años con huecos largos (p. ej. 2023-2024
-    // con poco movimiento) no estiren la línea de tiempo hasta hacerla ilegible.
-    function monthKey(d) { return d.getFullYear() + "-" + d.getMonth(); }
-    function monthStart(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
-    function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
-    var activeMonthMap = {};
-    function markMonths(s, e) {
+    // Eje "comprimido": solo se muestran los periodos (mes/trimestre/año, según
+    // la vista elegida) en los que de verdad hubo actividad — los periodos vacíos
+    // de por medio se eliminan para que años con huecos largos no estiren la
+    // línea de tiempo hasta hacerla ilegible.
+    var gran = state.timelineView.granularidad || "mensual";
+    var periodMonths = gran === "anual" ? 12 : gran === "trimestral" ? 3 : 1;
+    function periodStart(d) {
+      if (gran === "anual") return new Date(d.getFullYear(), 0, 1);
+      if (gran === "trimestral") return new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1);
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    function periodKeyOf(d) { var s = periodStart(d); return s.getFullYear() + "-" + s.getMonth(); }
+    function periodDaysOf(d) {
+      var s = periodStart(d);
+      var e = new Date(s.getFullYear(), s.getMonth() + periodMonths, 1);
+      return Math.round((e - s) / MS_DAY);
+    }
+    function periodLabelOf(d) {
+      if (gran === "anual") return String(d.getFullYear());
+      if (gran === "trimestral") return "T" + (Math.floor(d.getMonth() / 3) + 1) + " " + String(d.getFullYear()).slice(2);
+      return d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" });
+    }
+    var activePeriodMap = {};
+    function markPeriods(s, e) {
       if (!s) return;
       e = e || s;
       if (e < s) { var tmp = s; s = e; e = tmp; }
-      var cur = monthStart(s), end = monthStart(e);
+      var cur = periodStart(s), end = periodStart(e);
       var guard = 0;
       while (cur <= end && guard < 1200) {
-        activeMonthMap[monthKey(cur)] = new Date(cur);
-        cur.setMonth(cur.getMonth() + 1);
+        activePeriodMap[periodKeyOf(cur)] = new Date(cur);
+        cur.setMonth(cur.getMonth() + periodMonths);
         guard++;
       }
     }
     filtered.forEach(function (it) {
       var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
       var e = parseDate(it.fechaVencimiento) || s;
-      markMonths(s, e);
+      markPeriods(s, e);
     });
-    markMonths(todayMid, todayMid);
-    var activeMonths = Object.keys(activeMonthMap).map(function (k) { return activeMonthMap[k]; }).sort(function (a, b) { return a - b; });
-    var monthIndex = {};
-    activeMonths.forEach(function (m, i) { monthIndex[monthKey(m)] = i; });
+    markPeriods(todayMid, todayMid);
+    var activePeriods = Object.keys(activePeriodMap).map(function (k) { return activePeriodMap[k]; }).sort(function (a, b) { return a - b; });
+    var periodIndex = {};
+    activePeriods.forEach(function (m, i) { periodIndex[periodKeyOf(m)] = i; });
     var LABEL_W = 230;
-    var MONTH_W = Math.max(60, Math.min(140, Math.round(1500 / Math.max(1, activeMonths.length))));
-    var trackWidth = Math.max(MONTH_W, activeMonths.length * MONTH_W);
+    var zoom = state.timelineView.zoom || 1;
+    var BASE_UNIT_W = Math.max(40, Math.min(160, Math.round(1500 / Math.max(1, activePeriods.length))));
+    var UNIT_W = Math.round(BASE_UNIT_W * zoom);
+    var trackWidth = Math.max(UNIT_W, activePeriods.length * UNIT_W);
 
     function xFor(date) {
       if (!date) return 0;
-      var idx = monthIndex[monthKey(date)];
-      if (idx === undefined) idx = date < activeMonths[0] ? 0 : activeMonths.length - 1;
-      var frac = (date.getDate() - 1) / daysInMonth(date);
-      return Math.round(idx * MONTH_W + frac * MONTH_W);
+      var idx = periodIndex[periodKeyOf(date)];
+      if (idx === undefined) idx = date < activePeriods[0] ? 0 : activePeriods.length - 1;
+      var frac = (date - periodStart(date)) / (periodDaysOf(date) * MS_DAY);
+      return Math.round(idx * UNIT_W + frac * UNIT_W);
     }
 
     var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
-      activeMonths.map(function (m, i) {
-        return '<div class="tl-axis-tick" style="left:' + (i * MONTH_W) + 'px"><span>' +
-          m.toLocaleDateString("es-MX", { month: "short", year: "2-digit" }) + '</span></div>';
+      activePeriods.map(function (m, i) {
+        return '<div class="tl-axis-tick" style="left:' + (i * UNIT_W) + 'px"><span>' +
+          periodLabelOf(m) + '</span></div>';
       }).join("") + '</div>';
 
     var groupsHtml = groupNames.map(function (gName) {
@@ -1738,6 +1774,8 @@
         " al " + maxF.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
     }
     document.getElementById("tl-hint").textContent = hint;
+    document.getElementById("tl-vista").value = state.timelineView.granularidad || "mensual";
+    document.getElementById("tl-zoom-pct").textContent = Math.round((state.timelineView.zoom || 1) * 100) + "%";
     renderTimeline(items);
   }
 
@@ -1750,6 +1788,25 @@
       state.timelineView.areas[cb.dataset.area] = cb.checked;
       renderTimelineView();
     });
+  });
+  document.getElementById("tl-vista").addEventListener("change", function (e) {
+    state.timelineView.granularidad = e.target.value;
+    renderTimelineView();
+  });
+  var TL_ZOOM_MIN = 0.5, TL_ZOOM_MAX = 3, TL_ZOOM_STEP = 0.25;
+  function setTlZoom(z) {
+    z = Math.max(TL_ZOOM_MIN, Math.min(TL_ZOOM_MAX, Math.round(z * 100) / 100));
+    state.timelineView.zoom = z;
+    renderTimelineView();
+  }
+  document.getElementById("btn-tl-zoom-out").addEventListener("click", function () {
+    setTlZoom((state.timelineView.zoom || 1) - TL_ZOOM_STEP);
+  });
+  document.getElementById("btn-tl-zoom-in").addEventListener("click", function () {
+    setTlZoom((state.timelineView.zoom || 1) + TL_ZOOM_STEP);
+  });
+  document.getElementById("btn-tl-zoom-reset").addEventListener("click", function () {
+    setTlZoom(1);
   });
 
   function showTooltip(ev, it) {
