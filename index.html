@@ -372,6 +372,7 @@
         <label><input type="checkbox" data-area="due_diligence" checked> Due diligence</label>
         <label><input type="checkbox" data-area="escrituracion" checked> Escrituración</label>
         <label><input type="checkbox" data-area="otro" checked> Otro</label>
+        <label style="margin-left:18px"><input type="checkbox" id="tl-mostrar-responsable"> Responsable</label>
       </div>
       <div class="legend">
         <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
@@ -1167,7 +1168,7 @@
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "mensual", zoom: 1 }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "mensual", zoom: 1, mostrarResponsable: false }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1689,6 +1690,12 @@
           periodLabelOf(m) + '</span></div>';
       }).join("") + '</div>';
 
+    // El renglón del responsable es opcional (checkbox "Responsable" en el
+    // filtro): oculto por default para que la línea de tiempo se vea más
+    // compacta; al activarlo, cada fila crece para mostrarlo.
+    var mostrarResp = !!state.timelineView.mostrarResponsable;
+    var ROW_H = mostrarResp ? 34 : 22;
+    var BAR_TOP = mostrarResp ? 8 : 2;
     var groupsHtml = groupNames.map(function (gName) {
       var rows = groups[gName].filter(function (it) { return parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento); })
         .slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
@@ -1700,11 +1707,11 @@
         var left = xFor(s);
         var width = Math.max(6, xFor(e) - left);
         var sub = it.responsable ? it.responsable : "Sin responsable";
-        return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px">' +
-          '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + '<span class="tl-sub">' + escapeHtml(sub) + '</span></div>' +
+        return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px;height:' + ROW_H + 'px">' +
+          '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + (mostrarResp ? '<span class="tl-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>' +
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
-            '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px"></div>' +
+            '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px;top:' + BAR_TOP + 'px"></div>' +
           '</div>' +
         '</div>';
       }).join("");
@@ -1776,6 +1783,7 @@
     document.getElementById("tl-hint").textContent = hint;
     document.getElementById("tl-vista").value = state.timelineView.granularidad || "mensual";
     document.getElementById("tl-zoom-pct").textContent = Math.round((state.timelineView.zoom || 1) * 100) + "%";
+    document.getElementById("tl-mostrar-responsable").checked = !!state.timelineView.mostrarResponsable;
     renderTimeline(items);
   }
 
@@ -1788,6 +1796,10 @@
       state.timelineView.areas[cb.dataset.area] = cb.checked;
       renderTimelineView();
     });
+  });
+  document.getElementById("tl-mostrar-responsable").addEventListener("change", function (e) {
+    state.timelineView.mostrarResponsable = e.target.checked;
+    renderTimelineView();
   });
   document.getElementById("tl-vista").addEventListener("change", function (e) {
     state.timelineView.granularidad = e.target.value;

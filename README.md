@@ -49,6 +49,10 @@ información, y queda protegida con una contraseña.
   proyectos largos y que se puedan leer de un vistazo, y controles de **Zoom**
   (acercar, alejar, restablecer) para ajustar qué tan ancha se ve la línea de
   tiempo — útil cuando aun así se necesita ver el detalle día a día de un tramo.
+  Junto al filtro de áreas hay una casilla de **Responsable**: viene destildada
+  por default para que la línea de tiempo se vea compacta (una fila más
+  angosta por actividad); al activarla, cada fila crece un poco y muestra
+  quién es el responsable debajo del nombre.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir
