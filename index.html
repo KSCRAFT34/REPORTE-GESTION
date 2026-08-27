@@ -1577,7 +1577,7 @@
       if (t.incluirLineaTiempo === false || !areas.tramites) return;
       if (t.proyectoId !== proyectoId) return;
       items.push({
-        id: "t:" + t.id, kind: "tramite", area: "tramites",
+        id: "t:" + t.id, rawId: t.id, kind: "tramite", area: "tramites",
         nombre: t.nombre, proyectoId: t.proyectoId,
         fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento, estatus: t.estatus,
         presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos,
@@ -1591,7 +1591,7 @@
       var parent = getTramite(se.tramiteId);
       if (!parent || parent.proyectoId !== proyectoId) return;
       items.push({
-        id: "s:" + se.id, kind: "subelemento", area: "tramites",
+        id: "s:" + se.id, rawId: se.id, parentTramiteId: parent.id, kind: "subelemento", area: "tramites",
         nombre: parent.nombre + " → " + se.nombre, proyectoId: parent.proyectoId,
         fechaInicio: se.fecha, fechaVencimiento: se.fecha, estatus: se.estatus
       });
@@ -1602,7 +1602,7 @@
       if (!h.fechaVencimiento && !h.fechaInicio) return; // sin fecha: no se puede dibujar en la línea de tiempo
       if (h.proyectoId !== proyectoId) return;
       items.push({
-        id: "h:" + h.id, kind: "hito", area: h.area,
+        id: "h:" + h.id, rawId: h.id, kind: "hito", area: h.area,
         nombre: h.nombre, proyectoId: h.proyectoId,
         fechaInicio: h.fechaInicio || h.fechaVencimiento, fechaVencimiento: h.fechaVencimiento || h.fechaInicio,
         estatus: h.estatus, notas: h.notas, responsable: h.responsable
@@ -1610,6 +1610,21 @@
     });
 
     return items;
+  }
+
+  // Para trámites, la línea de tiempo se ubica por cuándo se consigue
+  // (inicio → conclusión real) y NUNCA por la fecha de vencimiento — esa
+  // es solo el recordatorio de renovación y solo vive en la tabla. Para
+  // áreas y subelementos, la fecha de término sigue siendo la de siempre.
+  function itemRange(it) {
+    if (it.kind === "tramite") {
+      var si = parseDate(it.fechaInicio) || parseDate(it.fechaConclusionReal);
+      var ei = parseDate(it.fechaConclusionReal) || si;
+      return { s: si, e: ei };
+    }
+    var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
+    var e = parseDate(it.fechaVencimiento) || s;
+    return { s: s, e: e };
   }
 
   function renderTimeline(filtered) {
@@ -1662,9 +1677,8 @@
       }
     }
     filtered.forEach(function (it) {
-      var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
-      var e = parseDate(it.fechaVencimiento) || s;
-      markPeriods(s, e);
+      var r = itemRange(it);
+      markPeriods(r.s, r.e);
     });
     markPeriods(todayMid, todayMid);
     var activePeriods = Object.keys(activePeriodMap).map(function (k) { return activePeriodMap[k]; }).sort(function (a, b) { return a - b; });
@@ -1697,13 +1711,13 @@
     var ROW_H = mostrarResp ? 34 : 22;
     var BAR_TOP = mostrarResp ? 8 : 2;
     var groupsHtml = groupNames.map(function (gName) {
-      var rows = groups[gName].filter(function (it) { return parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento); })
-        .slice().sort(function (a, b) { return (a.fechaVencimiento || "").localeCompare(b.fechaVencimiento || ""); });
+      var rows = groups[gName].filter(function (it) { return itemRange(it).s; })
+        .slice().sort(function (a, b) { var ra = itemRange(a).s, rb = itemRange(b).s; return (ra ? ra.getTime() : 0) - (rb ? rb.getTime() : 0); });
       var totalCost = rows.filter(function (it) { return it.kind === "tramite"; }).reduce(function (s, it) { return s + totalCosto(it); }, 0);
       var rowsHtml = rows.map(function (it) {
         var st = computeState(it);
-        var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
-        var e = parseDate(it.fechaVencimiento) || s;
+        var r = itemRange(it);
+        var s = r.s, e = r.e;
         var left = xFor(s);
         var width = Math.max(6, xFor(e) - left);
         var sub = it.responsable ? it.responsable : "Sin responsable";
@@ -1730,7 +1744,26 @@
       bar.addEventListener("mouseenter", function (ev) { showTooltip(ev, it); });
       bar.addEventListener("mousemove", function (ev) { positionTooltip(ev); });
       bar.addEventListener("mouseleave", hideTooltip);
+      if (timelineItemEditable(it)) {
+        bar.classList.add("tl-bar-editable");
+        bar.addEventListener("click", function () { openTimelineItemEditor(it); });
+      }
     });
+  }
+
+  // ¿Se puede editar este elemento haciendo clic sobre su barra en la línea
+  // de tiempo? Mismas reglas que ya se usan en las tablas de Áreas/Dashboard:
+  // trámites y subelementos solo por un editor; hitos por un editor o por el
+  // usuario de esa misma área.
+  function timelineItemEditable(it) {
+    if (it.kind === "tramite" || it.kind === "subelemento") return state.role === "editor";
+    if (it.kind === "hito") return state.role === "editor" || (state.role === "area" && it.area === state.areaScope);
+    return false;
+  }
+  function openTimelineItemEditor(it) {
+    if (it.kind === "tramite") openForm(it.rawId);
+    else if (it.kind === "subelemento") openForm(it.parentTramiteId);
+    else if (it.kind === "hito") openHitoForm(it.rawId);
   }
 
   /* ---------------- Pantalla "Líneas de tiempo" (aparte del dashboard) ---------------- */
@@ -1766,13 +1799,13 @@
     emptyPanel.style.display = "none";
     document.getElementById("tl-proyecto-titulo").textContent = "Cronograma — " + proy.nombre;
     var items = getTimelineItems({ proyectoId: proyectoId, areas: state.timelineView.areas });
-    var conFecha = items.filter(function (it) { return parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento); });
+    var conFecha = items.filter(function (it) { return itemRange(it).s; });
     var hint = items.length + " actividad" + (items.length === 1 ? "" : "es");
     if (conFecha.length) {
       var fechas = [];
       conFecha.forEach(function (it) {
-        var s = parseDate(it.fechaInicio) || parseDate(it.fechaVencimiento);
-        var e = parseDate(it.fechaVencimiento) || s;
+        var r = itemRange(it);
+        var s = r.s, e = r.e;
         if (s) fechas.push(s);
         if (e) fechas.push(e);
       });
@@ -1837,7 +1870,8 @@
       (isTramite && it.presupuesto != null ? '<div class="tt-row"><span>Presupuesto</span><span>' + fmtMoney.format(Number(it.presupuesto)) + '</span></div>' : '') +
       (mDev !== null ? '<div class="tt-row"><span>Desvío $</span><span>' + fmtMoneySigned(mDev) + '</span></div>' : '') +
       (dur ? '<div class="tt-row"><span>Tiempo aprox.</span><span>' + dur + '</span></div>' : '') +
-      '<div class="tt-row"><span>Fecha</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>' +
+      (isTramite ? '<div class="tt-row"><span>Inicio</span><span>' + fmtDate(it.fechaInicio) + '</span></div>' : '') +
+      (isTramite ? '<div class="tt-row"><span>Vencimiento</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>' : '<div class="tt-row"><span>Fecha</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>') +
       (it.fechaConclusionReal ? '<div class="tt-row"><span>Concluyó</span><span>' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span></div>' : '') +
       (it.notas ? '<div class="tt-row"><span>Notas</span><span>' + escapeHtml(it.notas) + '</span></div>' : '') +
       '<div class="tt-row"><span>Estado</span><span>' + STATE_LABEL[st] + (st !== "completado" ? " · " + daysLabel(it) : "") + '</span></div>';

@@ -53,6 +53,17 @@ información, y queda protegida con una contraseña.
   por default para que la línea de tiempo se vea compacta (una fila más
   angosta por actividad); al activarla, cada fila crece un poco y muestra
   quién es el responsable debajo del nombre.
+  Para los **trámites**, la barra se ubica de la fecha de inicio a la fecha en
+  que se concluyó (o solo un punto en el inicio si aún sigue en proceso) — la
+  fecha de **vencimiento nunca se usa para ubicar la barra**, porque esa es
+  solo el recordatorio de renovación y vive únicamente en la tabla de
+  "Detalle de trámites" en Áreas. El color de la barra (vigente, por vencer,
+  urgente, vencido) sí sigue reflejando la fecha de vencimiento real.
+  Puedes hacer **clic en cualquier barra** (trámite o actividad) para abrir
+  su formulario de edición directamente desde la línea de tiempo, con los
+  mismos permisos que ya aplican en las tablas: solo un editor puede editar
+  trámites, y una actividad (hito) la puede editar un editor o el usuario del
+  área a la que pertenece esa actividad.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir

@@ -315,6 +315,8 @@
   .tl-bar.st-urgente { background: var(--serious); }
   .tl-bar.st-vencido { background: var(--critical); }
   .tl-bar.st-completado { background: var(--text-muted); }
+  .tl-bar.tl-bar-editable { cursor: pointer; }
+  .tl-bar.tl-bar-editable:hover { box-shadow: 0 0 0 2px var(--accent) inset; }
   .tl-today {
     position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--accent); z-index: 1;
   }
