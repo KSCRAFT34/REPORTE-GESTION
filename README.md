@@ -19,7 +19,11 @@ información, y queda protegida con una contraseña.
   propio color por área — en vez de una fecha suelta. Se puede filtrar por área
   y por estado (Vigente, Por vencer, Urgente, Vencido, Completado), con
   botones "Todas"/"Ninguna" en cada filtro para no tener que ir marcando o
-  desmarcando uno por uno.
+  desmarcando uno por uno. En esta misma pantalla, debajo de "Detalle de áreas",
+  vive también el recuadro de **Trámites** (con sus propios números arriba, sus
+  filtros y el botón "+ Nuevo trámite") — para capturar y consultar trámites
+  reales sin salir de Áreas. El Dashboard ya no muestra trámites; ahí solo se
+  quedan Proyectos y Control de pagos.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se
@@ -38,8 +42,9 @@ información, y queda protegida con una contraseña.
   Eliges un proyecto y ves su cronograma completo — trámites y áreas
   juntos, agrupados por tipo de actividad (Trámites, Comercial, Obra, Diseño,
   Administración, Due diligence, Escrituración, Otro) — con un botón por
-  trámite/subelemento/actividad para decidir si aparece ahí. El dashboard conserva
-  la tabla y los filtros de trámites; la parte visual de Gantt vive solo aquí.
+  trámite/subelemento/actividad para decidir si aparece ahí. La tabla y los
+  filtros de trámites viven en "Áreas" (ver arriba); la parte visual de Gantt
+  vive solo aquí.
   Tiene un selector de **Vista** (Mensual, Trimestral o Anual) para comprimir
   proyectos largos y que se puedan leer de un vistazo, y controles de **Zoom**
   (acercar, alejar, restablecer) para ajustar qué tan ancha se ve la línea de
