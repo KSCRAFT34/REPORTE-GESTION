@@ -339,6 +339,18 @@
   /* ---------- Table ---------- */
   .table-scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 920px; }
+  /* La última columna (editar/eliminar) se queda fija a la derecha al hacer
+     scroll horizontal en tablas anchas, para que el botón de editar siempre
+     sea visible y no quede oculto fuera de la pantalla. */
+  .table-scroll thead th:last-child {
+    position: sticky; right: 0; background: var(--surface-alt);
+    box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
+  }
+  .table-scroll tbody td:last-child {
+    position: sticky; right: 0; background: var(--surface);
+    box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.15);
+  }
+  .table-scroll tbody tr:hover td:last-child { background: var(--surface-hover); }
   thead th {
     text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--text-muted); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--border);
