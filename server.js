@@ -92,6 +92,9 @@ async function initDb() {
     );
   `);
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS incluir_linea_tiempo BOOLEAN NOT NULL DEFAULT true;`);
+  // La gratificación es también un costo/pago asociado al trámite, igual que
+  // gestión y derechos.
+  await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS costo_gratificacion NUMERIC NOT NULL DEFAULT 0;`);
   // "Depende de": referencia genérica a otro trámite u hito ("t:<id>" o "h:<id>"),
   // para poder recorrer en cadena las fechas de los que dependen de él cuando se atrasa.
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS depende_de TEXT;`);
@@ -292,6 +295,7 @@ function tramiteRowToItem(row) {
     presupuesto: row.presupuesto != null ? Number(row.presupuesto) : null,
     costoGestion: Number(row.costo_gestion) || 0,
     costoDerechos: Number(row.costo_derechos) || 0,
+    costoGratificacion: Number(row.costo_gratificacion) || 0,
     estatus: row.estatus,
     fechaInicio: dateStr(row.fecha_inicio) || "",
     fechaVencimiento: dateStr(row.fecha_vencimiento) || "",
@@ -374,8 +378,9 @@ function sanitizeDependeDe(value, selfRef) {
 function sanitizeTramite(body, selfId) {
   const nombre = String((body && body.nombre) || "").trim();
   const proyectoId = String((body && body.proyectoId) || "").trim();
+  // La fecha de vencimiento es opcional: un trámite puede marcarse "Sin vencimiento".
   const fechaVencimiento = body && body.fechaVencimiento ? String(body.fechaVencimiento).slice(0, 10) : null;
-  if (!nombre || !proyectoId || !fechaVencimiento) return null;
+  if (!nombre || !proyectoId) return null;
   const estatus = ESTATUS_VALIDOS.includes(body.estatus) ? body.estatus : "en_proceso";
   const presupuestoRaw = body.presupuesto;
   const presupuesto = (presupuestoRaw !== undefined && presupuestoRaw !== null && presupuestoRaw !== "") ? Number(presupuestoRaw) : null;
@@ -384,6 +389,7 @@ function sanitizeTramite(body, selfId) {
     presupuesto: isFinite(presupuesto) ? presupuesto : null,
     costoGestion: Number(body.costoGestion) || 0,
     costoDerechos: Number(body.costoDerechos) || 0,
+    costoGratificacion: Number(body.costoGratificacion) || 0,
     estatus,
     fechaInicio: body.fechaInicio ? String(body.fechaInicio).slice(0, 10) : null,
     fechaVencimiento,
@@ -843,14 +849,14 @@ app.delete("/api/proyectos/:id", requireEditor, async (req, res) => {
 /* ---------------- Trámites ---------------- */
 app.post("/api/tramites", requireEditor, async (req, res) => {
   const data = sanitizeTramite(req.body || {});
-  if (!data) return res.status(400).json({ error: "Faltan campos obligatorios (trámite, proyecto, vencimiento)." });
+  if (!data) return res.status(400).json({ error: "Faltan campos obligatorios (trámite, proyecto)." });
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
-      `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, estatus,
+      `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus,
         fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo, depende_de)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
-      [id, data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.estatus,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [id, data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.costoGratificacion, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
         data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe]
     );
@@ -864,7 +870,7 @@ app.post("/api/tramites", requireEditor, async (req, res) => {
 
 app.put("/api/tramites/:id", requireEditor, async (req, res) => {
   const data = sanitizeTramite(req.body || {}, req.params.id);
-  if (!data) return res.status(400).json({ error: "Faltan campos obligatorios (trámite, proyecto, vencimiento)." });
+  if (!data) return res.status(400).json({ error: "Faltan campos obligatorios (trámite, proyecto)." });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -876,9 +882,9 @@ app.put("/api/tramites/:id", requireEditor, async (req, res) => {
 
     const result = await client.query(
       `UPDATE tramites SET proyecto_id=$1, nombre=$2, presupuesto=$3, costo_gestion=$4, costo_derechos=$5,
-        estatus=$6, fecha_inicio=$7, fecha_vencimiento=$8, fecha_conclusion_real=$9, tiempo_valor=$10,
-        tiempo_unidad=$11, responsable=$12, notas=$13, incluir_linea_tiempo=$14, depende_de=$15, updated_at=now() WHERE id=$16 RETURNING *`,
-      [data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.estatus,
+        costo_gratificacion=$6, estatus=$7, fecha_inicio=$8, fecha_vencimiento=$9, fecha_conclusion_real=$10, tiempo_valor=$11,
+        tiempo_unidad=$12, responsable=$13, notas=$14, incluir_linea_tiempo=$15, depende_de=$16, updated_at=now() WHERE id=$17 RETURNING *`,
+      [data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.costoGratificacion, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
         data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
     );
@@ -1227,10 +1233,10 @@ app.post("/api/import", requireEditor, async (req, res) => {
     }
     for (const t of cleanTramites) {
       await client.query(
-        `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, estatus,
+        `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus,
           fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-        [t.id, t.proyectoId, t.nombre, t.presupuesto, t.costoGestion, t.costoDerechos, t.estatus,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+        [t.id, t.proyectoId, t.nombre, t.presupuesto, t.costoGestion, t.costoDerechos, t.costoGratificacion, t.estatus,
           t.fechaInicio, t.fechaVencimiento, t.fechaConclusionReal, t.tiempoValor, t.tiempoUnidad, t.responsable, t.notas, t.incluirLineaTiempo]
       );
     }

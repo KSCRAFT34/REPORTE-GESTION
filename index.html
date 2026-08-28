@@ -537,6 +537,10 @@
           <label for="in-costo-derechos">Costo de derechos (MXN)</label>
           <input type="number" id="in-costo-derechos" min="0" step="100" placeholder="0">
         </div>
+        <div class="field span-2">
+          <label for="in-costo-gratificacion">Gratificación (MXN)</label>
+          <input type="number" id="in-costo-gratificacion" min="0" step="100" placeholder="0">
+        </div>
 
         <div class="form-section-label span-2">Fechas</div>
         <div class="field">
@@ -544,20 +548,11 @@
           <input type="date" id="in-inicio">
         </div>
         <div class="field">
-          <label for="in-tiempo-valor">Tiempo aproximado</label>
-          <div class="duration-row">
-            <input type="number" id="in-tiempo-valor" min="0" step="1" placeholder="0">
-            <select id="in-tiempo-unidad">
-              <option value="dias">días</option>
-              <option value="semanas">semanas</option>
-              <option value="meses">meses</option>
-            </select>
-          </div>
-        </div>
-        <div class="field span-2">
-          <label for="in-vencimiento">Fecha de vencimiento estimada <span class="req">*</span></label>
-          <input type="date" id="in-vencimiento" required>
-          <span class="field-hint">Se calcula sola a partir del tiempo aproximado; también puedes ajustarla a mano.</span>
+          <label for="in-vencimiento">Fecha de vencimiento</label>
+          <input type="date" id="in-vencimiento">
+          <label class="checkbox-inline" style="margin-top:6px;font-weight:400">
+            <input type="checkbox" id="in-sin-vencimiento"> Sin vencimiento
+          </label>
         </div>
         <div class="field span-2">
           <label for="in-conclusion-real">Fecha de terminación</label>
@@ -1197,7 +1192,7 @@
     var pair = DURATION_LABELS[t.tiempoUnidad] || DURATION_LABELS.dias;
     return "~" + t.tiempoValor + " " + (t.tiempoValor === 1 ? pair[0] : pair[1]);
   }
-  function totalCosto(t) { return (Number(t.costoGestion) || 0) + (Number(t.costoDerechos) || 0); }
+  function totalCosto(t) { return (Number(t.costoGestion) || 0) + (Number(t.costoDerechos) || 0) + (Number(t.costoGratificacion) || 0); }
   function moneyDeviation(t) {
     if (t.presupuesto === null || t.presupuesto === undefined || t.presupuesto === "") return null;
     return totalCosto(t) - Number(t.presupuesto);
@@ -1501,7 +1496,7 @@
       var dur = durationLabel(it);
       var mDev = moneyDeviation(it);
       var tDev = timeDeviationDays(it);
-      var costSub = '<span class="sub-note">Gestión ' + fmtMoney.format(Number(it.costoGestion) || 0) + ' · Derechos ' + fmtMoney.format(Number(it.costoDerechos) || 0) + '</span>' +
+      var costSub = '<span class="sub-note">Gestión ' + fmtMoney.format(Number(it.costoGestion) || 0) + ' · Derechos ' + fmtMoney.format(Number(it.costoDerechos) || 0) + (Number(it.costoGratificacion) ? ' · Gratificación ' + fmtMoney.format(Number(it.costoGratificacion)) : '') + '</span>' +
         (mDev !== null ? '<span class="sub-note ' + (mDev > 0 ? "dev-pos" : mDev < 0 ? "dev-neg" : "") + '">Presupuesto ' + fmtMoney.format(Number(it.presupuesto)) + ' (' + fmtMoneySigned(mDev) + ')</span>' : '');
       var dateSub = dur ? '<span class="sub-note">' + dur + '</span>' : '';
       if (it.fechaConclusionReal) {
@@ -1551,7 +1546,7 @@
     var payload = {
       nombre: t.nombre, proyectoId: t.proyectoId,
       presupuesto: t.presupuesto,
-      costoGestion: t.costoGestion, costoDerechos: t.costoDerechos,
+      costoGestion: t.costoGestion, costoDerechos: t.costoDerechos, costoGratificacion: t.costoGratificacion,
       estatus: t.estatus,
       fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento,
       fechaConclusionReal: t.fechaConclusionReal || "",
@@ -1580,7 +1575,7 @@
         id: "t:" + t.id, rawId: t.id, kind: "tramite", area: "tramites",
         nombre: t.nombre, proyectoId: t.proyectoId,
         fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento, estatus: t.estatus,
-        presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos,
+        presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos, costoGratificacion: t.costoGratificacion,
         fechaConclusionReal: t.fechaConclusionReal, tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad,
         responsable: t.responsable
       });
@@ -2046,18 +2041,12 @@
   }
   document.getElementById("in-proyecto").addEventListener("change", updateProyectoCiudadHint);
 
-  function recalcVencimiento() {
-    var valor = Number(document.getElementById("in-tiempo-valor").value);
-    if (!valor || valor <= 0) return;
-    var unidad = document.getElementById("in-tiempo-unidad").value;
-    var inicioStr = document.getElementById("in-inicio").value || new Date().toISOString().slice(0, 10);
-    var base = parseDate(inicioStr) || new Date();
-    var result = addDuration(base, valor, unidad);
-    document.getElementById("in-vencimiento").value = result.toISOString().slice(0, 10);
-  }
-  document.getElementById("in-tiempo-valor").addEventListener("input", recalcVencimiento);
-  document.getElementById("in-tiempo-unidad").addEventListener("change", recalcVencimiento);
-  document.getElementById("in-inicio").addEventListener("change", recalcVencimiento);
+  // "Sin vencimiento": deshabilita y limpia el calendario de vencimiento.
+  document.getElementById("in-sin-vencimiento").addEventListener("change", function (e) {
+    var input = document.getElementById("in-vencimiento");
+    input.disabled = e.target.checked;
+    if (e.target.checked) input.value = "";
+  });
 
   function openForm(id) {
     state.editingTramiteId = id || null;
@@ -2068,18 +2057,20 @@
     document.getElementById("in-presupuesto").value = it && it.presupuesto != null ? it.presupuesto : "";
     document.getElementById("in-costo-gestion").value = it ? it.costoGestion : "";
     document.getElementById("in-costo-derechos").value = it ? it.costoDerechos : "";
+    document.getElementById("in-costo-gratificacion").value = it && it.costoGratificacion ? it.costoGratificacion : "";
     document.getElementById("in-estatus").value = it ? it.estatus : "en_proceso";
     document.getElementById("in-inicio").value = it ? it.fechaInicio : new Date().toISOString().slice(0, 10);
-    document.getElementById("in-tiempo-valor").value = it && it.tiempoValor ? it.tiempoValor : "";
-    document.getElementById("in-tiempo-unidad").value = it && it.tiempoUnidad ? it.tiempoUnidad : "dias";
-    document.getElementById("in-vencimiento").value = it ? it.fechaVencimiento : "";
+    var sinVencimiento = it ? !it.fechaVencimiento : false;
+    document.getElementById("in-sin-vencimiento").checked = sinVencimiento;
+    document.getElementById("in-vencimiento").value = it ? (it.fechaVencimiento || "") : "";
+    document.getElementById("in-vencimiento").disabled = sinVencimiento;
     document.getElementById("in-conclusion-real").value = it ? (it.fechaConclusionReal || "") : "";
     document.getElementById("in-responsable").value = it ? (it.responsable || "") : "";
     document.getElementById("in-notas").value = it ? (it.notas || "") : "";
     document.getElementById("in-incluir-linea").checked = it ? it.incluirLineaTiempo !== false : true;
     populateDependeSelect("in-depende", it ? ("t:" + it.id) : null);
     document.getElementById("in-depende").value = it ? (it.dependeDe || "") : "";
-    ["in-nombre", "in-proyecto", "in-vencimiento"].forEach(function (fid) { document.getElementById(fid).style.borderColor = ""; });
+    ["in-nombre", "in-proyecto"].forEach(function (fid) { document.getElementById(fid).style.borderColor = ""; });
     setFormStatus(state.proyectos.length ? "" : "Primero registra un proyecto con el botón “Nuevo proyecto”.");
     document.getElementById("dlg-form-save").disabled = !state.proyectos.length;
     var subBlock = document.getElementById("subelementos-block");
@@ -2157,27 +2148,31 @@
   document.getElementById("dlg-form-save").addEventListener("click", function () {
     var nombre = document.getElementById("in-nombre").value.trim();
     var proyectoId = document.getElementById("in-proyecto").value;
-    var vencimiento = document.getElementById("in-vencimiento").value;
-    if (!nombre || !proyectoId || !vencimiento) {
-      [["in-nombre", nombre], ["in-proyecto", proyectoId], ["in-vencimiento", vencimiento]].forEach(function (pair) {
+    if (!nombre || !proyectoId) {
+      [["in-nombre", nombre], ["in-proyecto", proyectoId]].forEach(function (pair) {
         document.getElementById(pair[0]).style.borderColor = pair[1] ? "" : "var(--critical)";
       });
       setFormStatus("Completa los campos obligatorios.");
       return;
     }
     var presupuestoVal = document.getElementById("in-presupuesto").value;
-    var tiempoValor = Number(document.getElementById("in-tiempo-valor").value) || null;
+    var sinVencimiento = document.getElementById("in-sin-vencimiento").checked;
+    var vencimiento = sinVencimiento ? "" : document.getElementById("in-vencimiento").value;
+    // El "tiempo aproximado" ya no se captura en este formulario; si el trámite
+    // ya traía un valor de una versión anterior, se conserva tal cual.
+    var existing = state.editingTramiteId ? state.tramites.find(function (x) { return x.id === state.editingTramiteId; }) : null;
     var payload = {
       nombre: nombre, proyectoId: proyectoId,
       presupuesto: presupuestoVal !== "" ? Number(presupuestoVal) : null,
       costoGestion: Number(document.getElementById("in-costo-gestion").value) || 0,
       costoDerechos: Number(document.getElementById("in-costo-derechos").value) || 0,
+      costoGratificacion: Number(document.getElementById("in-costo-gratificacion").value) || 0,
       estatus: document.getElementById("in-estatus").value,
       fechaInicio: document.getElementById("in-inicio").value,
       fechaVencimiento: vencimiento,
       fechaConclusionReal: document.getElementById("in-conclusion-real").value || "",
-      tiempoValor: tiempoValor,
-      tiempoUnidad: document.getElementById("in-tiempo-unidad").value,
+      tiempoValor: existing ? existing.tiempoValor : null,
+      tiempoUnidad: existing ? existing.tiempoUnidad : "dias",
       responsable: document.getElementById("in-responsable").value.trim(),
       notas: document.getElementById("in-notas").value.trim(),
       dependeDe: document.getElementById("in-depende").value || "",
@@ -2268,9 +2263,11 @@
   function sanitizeTramiteFields(t) {
     var costoGestion = t.costoGestion != null ? Number(t.costoGestion) || 0 : Number(t.costo) || 0;
     var costoDerechos = t.costoDerechos != null ? Number(t.costoDerechos) || 0 : 0;
+    var costoGratificacion = t.costoGratificacion != null ? Number(t.costoGratificacion) || 0 : 0;
     return {
       costoGestion: costoGestion,
       costoDerechos: costoDerechos,
+      costoGratificacion: costoGratificacion,
       presupuesto: (t.presupuesto !== undefined && t.presupuesto !== null && t.presupuesto !== "") ? Number(t.presupuesto) : null,
       fechaConclusionReal: t.fechaConclusionReal || "",
       tiempoValor: t.tiempoValor ? Number(t.tiempoValor) : null,

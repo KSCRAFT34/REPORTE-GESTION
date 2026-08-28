@@ -9,7 +9,9 @@ información, y queda protegida con una contraseña.
 
 - Una sola URL para todo el equipo, con distintos niveles de acceso que tú
   misma administras desde la pantalla de **Accesos** (ver abajo).
-- Proyectos, trámites con costos de gestión/derechos, presupuesto y control de pagos.
+- Proyectos, trámites con costos de gestión/derechos/gratificación, presupuesto y
+  control de pagos. La fecha de vencimiento es opcional — puedes marcar "Sin
+  vencimiento" para un trámite que no la tenga.
 - Pagos reales (estado de cuenta) separados de la proyección de costos.
 - Subelementos dentro de un trámite (por ejemplo, los distintos pasos que exige una
   Licencia de Edificación), cada uno con su propia fecha y estatus.
