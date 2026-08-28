@@ -31,7 +31,15 @@ información, y queda protegida con una contraseña.
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se
   adelanta), la actividad dependiente se recorre automáticamente el mismo número de
   días — y así en cadena con todo lo que dependa de esas. Ya no hay que ir moviendo
-  fecha por fecha a mano cuando algo se atrasa.
+  fecha por fecha a mano cuando algo se atrasa. En la Línea de tiempo, las barras
+  que dependen de otra actividad muestran un pequeño ícono de ancla junto a la
+  barra, para que sea claro de un vistazo que esa actividad no puede avanzar por
+  su cuenta (el detalle al pasar el cursor indica de qué actividad depende).
+- **Subtareas**: tanto en el formulario de trámites como en el de actividades de
+  "Áreas" hay un cuadro de texto simple para anotar las subtareas o pendientes
+  que dependen de esa actividad. Es solo texto libre (no una lista con casillas),
+  pensado para llevar notas rápidas de lo que falta por hacer; también se ve en
+  el detalle al pasar el cursor sobre la barra en la Línea de tiempo.
 - **Historial de fechas**: reporte aparte (menú izquierdo) que registra cada vez que
   se mueve la fecha de inicio, vencimiento o terminación de un trámite u otra área —
   a mano o por el recorrido automático explicado arriba. El resumen de la tabla

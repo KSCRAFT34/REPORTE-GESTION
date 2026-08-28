@@ -95,6 +95,9 @@ async function initDb() {
   // La gratificación es también un costo/pago asociado al trámite, igual que
   // gestión y derechos.
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS costo_gratificacion NUMERIC NOT NULL DEFAULT 0;`);
+  // Espacio libre para anotar subtareas o pendientes que dependen de esta
+  // actividad/trámite (texto libre, no una lista con seguimiento propio).
+  await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS subtareas TEXT DEFAULT '';`);
   // "Depende de": referencia genérica a otro trámite u hito ("t:<id>" o "h:<id>"),
   // para poder recorrer en cadena las fechas de los que dependen de él cuando se atrasa.
   await pool.query(`ALTER TABLE tramites ADD COLUMN IF NOT EXISTS depende_de TEXT;`);
@@ -135,6 +138,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS fecha_inicio DATE;`);
   await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS responsable TEXT DEFAULT '';`);
   await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS depende_de TEXT;`);
+  await pool.query(`ALTER TABLE hitos ADD COLUMN IF NOT EXISTS subtareas TEXT DEFAULT '';`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS catalogo_tramites (
       id TEXT PRIMARY KEY,
@@ -304,6 +308,7 @@ function tramiteRowToItem(row) {
     tiempoUnidad: row.tiempo_unidad || "dias",
     responsable: row.responsable || "",
     notas: row.notas || "",
+    subtareas: row.subtareas || "",
     incluirLineaTiempo: row.incluir_linea_tiempo !== false,
     dependeDe: row.depende_de || null
   };
@@ -328,6 +333,7 @@ function hitoRowToItem(row) {
     fechaInicio: dateStr(row.fecha_inicio) || "",
     fechaVencimiento: dateStr(row.fecha) || "",
     estatus: row.estatus, responsable: row.responsable || "", notas: row.notas || "",
+    subtareas: row.subtareas || "",
     incluirLineaTiempo: row.incluir_linea_tiempo !== false,
     dependeDe: row.depende_de || null
   };
@@ -398,6 +404,7 @@ function sanitizeTramite(body, selfId) {
     tiempoUnidad: DURATION_UNITS.includes(body.tiempoUnidad) ? body.tiempoUnidad : "dias",
     responsable: String(body.responsable || "").trim(),
     notas: String(body.notas || "").trim(),
+    subtareas: String(body.subtareas || "").trim(),
     incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true,
     dependeDe: sanitizeDependeDe(body.dependeDe, selfId ? "t:" + selfId : null)
   };
@@ -449,6 +456,7 @@ function sanitizeHito(body, selfId) {
     estatus,
     responsable: String((body && body.responsable) || "").trim(),
     notas: String((body && body.notas) || "").trim(),
+    subtareas: String((body && body.subtareas) || "").trim(),
     incluirLineaTiempo: body.incluirLineaTiempo === false ? false : true,
     dependeDe: sanitizeDependeDe(body.dependeDe, selfId ? "h:" + selfId : null)
   };
@@ -854,11 +862,11 @@ app.post("/api/tramites", requireEditor, async (req, res) => {
   try {
     const result = await pool.query(
       `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus,
-        fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo, depende_de)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+        fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, subtareas, incluir_linea_tiempo, depende_de)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
       [id, data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.costoGratificacion, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
-        data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe]
+        data.responsable, data.notas, data.subtareas, data.incluirLineaTiempo, data.dependeDe]
     );
     res.status(201).json(tramiteRowToItem(result.rows[0]));
   } catch (err) {
@@ -883,10 +891,10 @@ app.put("/api/tramites/:id", requireEditor, async (req, res) => {
     const result = await client.query(
       `UPDATE tramites SET proyecto_id=$1, nombre=$2, presupuesto=$3, costo_gestion=$4, costo_derechos=$5,
         costo_gratificacion=$6, estatus=$7, fecha_inicio=$8, fecha_vencimiento=$9, fecha_conclusion_real=$10, tiempo_valor=$11,
-        tiempo_unidad=$12, responsable=$13, notas=$14, incluir_linea_tiempo=$15, depende_de=$16, updated_at=now() WHERE id=$17 RETURNING *`,
+        tiempo_unidad=$12, responsable=$13, notas=$14, subtareas=$15, incluir_linea_tiempo=$16, depende_de=$17, updated_at=now() WHERE id=$18 RETURNING *`,
       [data.proyectoId, data.nombre, data.presupuesto, data.costoGestion, data.costoDerechos, data.costoGratificacion, data.estatus,
         data.fechaInicio, data.fechaVencimiento, data.fechaConclusionReal, data.tiempoValor, data.tiempoUnidad,
-        data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
+        data.responsable, data.notas, data.subtareas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
     );
 
     await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "inicio", fechaAnterior: prevInicio, fechaNueva: data.fechaInicio, motivo: "manual" });
@@ -1001,9 +1009,9 @@ app.post("/api/hitos", requireEditorOrAreaHito, async (req, res) => {
   const id = crypto.randomUUID();
   try {
     const result = await pool.query(
-      `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, incluir_linea_tiempo, depende_de)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [id, data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe]
+      `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, subtareas, incluir_linea_tiempo, depende_de)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [id, data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.subtareas, data.incluirLineaTiempo, data.dependeDe]
     );
     res.status(201).json(hitoRowToItem(result.rows[0]));
   } catch (err) {
@@ -1029,9 +1037,9 @@ app.put("/api/hitos/:id", requireEditorOrAreaHito, async (req, res) => {
     const prevFecha = dateStr(prevRes.rows[0].fecha);
 
     const result = await client.query(
-      `UPDATE hitos SET proyecto_id=$1, nombre=$2, area=$3, fecha_inicio=$4, fecha=$5, estatus=$6, responsable=$7, notas=$8, incluir_linea_tiempo=$9, depende_de=$10, updated_at=now()
-       WHERE id=$11 RETURNING *`,
-      [data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
+      `UPDATE hitos SET proyecto_id=$1, nombre=$2, area=$3, fecha_inicio=$4, fecha=$5, estatus=$6, responsable=$7, notas=$8, subtareas=$9, incluir_linea_tiempo=$10, depende_de=$11, updated_at=now()
+       WHERE id=$12 RETURNING *`,
+      [data.proyectoId, data.nombre, data.area, data.fechaInicio, data.fechaVencimiento, data.estatus, data.responsable, data.notas, data.subtareas, data.incluirLineaTiempo, data.dependeDe, req.params.id]
     );
 
     await logFechaChange(client, { tipo: "hito", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "inicio", fechaAnterior: prevInicio, fechaNueva: data.fechaInicio, motivo: "manual" });
@@ -1234,10 +1242,10 @@ app.post("/api/import", requireEditor, async (req, res) => {
     for (const t of cleanTramites) {
       await client.query(
         `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus,
-          fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, incluir_linea_tiempo)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+          fecha_inicio, fecha_vencimiento, fecha_conclusion_real, tiempo_valor, tiempo_unidad, responsable, notas, subtareas, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
         [t.id, t.proyectoId, t.nombre, t.presupuesto, t.costoGestion, t.costoDerechos, t.costoGratificacion, t.estatus,
-          t.fechaInicio, t.fechaVencimiento, t.fechaConclusionReal, t.tiempoValor, t.tiempoUnidad, t.responsable, t.notas, t.incluirLineaTiempo]
+          t.fechaInicio, t.fechaVencimiento, t.fechaConclusionReal, t.tiempoValor, t.tiempoUnidad, t.responsable, t.notas, t.subtareas, t.incluirLineaTiempo]
       );
     }
     for (const pg of cleanPagos) {
@@ -1254,9 +1262,9 @@ app.post("/api/import", requireEditor, async (req, res) => {
     }
     for (const h of cleanHitos) {
       await client.query(
-        `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, incluir_linea_tiempo)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [h.id, h.proyectoId, h.nombre, h.area, h.fechaInicio, h.fechaVencimiento, h.estatus, h.responsable, h.notas, h.incluirLineaTiempo]
+        `INSERT INTO hitos (id, proyecto_id, nombre, area, fecha_inicio, fecha, estatus, responsable, notas, subtareas, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [h.id, h.proyectoId, h.nombre, h.area, h.fechaInicio, h.fechaVencimiento, h.estatus, h.responsable, h.notas, h.subtareas, h.incluirLineaTiempo]
       );
     }
     await client.query("COMMIT");

@@ -325,6 +325,10 @@
     color: var(--accent); white-space: nowrap;
   }
   .tl-empty { padding: 34px 18px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .tl-anchor {
+    position: absolute; width: 14px; height: 14px; color: var(--warning); z-index: 2;
+  }
+  .tl-anchor svg { width: 100%; height: 100%; }
 
   .tooltip {
     position: fixed; z-index: 60; background: var(--text-primary); color: var(--page-bg);

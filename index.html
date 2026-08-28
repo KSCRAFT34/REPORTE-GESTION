@@ -574,6 +574,10 @@
           <select id="in-depende"><option value="">Ninguno</option></select>
           <span class="field-hint">Si la fecha de vencimiento de esa actividad se recorre, esta se recorre automáticamente el mismo número de días.</span>
         </div>
+        <div class="field span-2">
+          <label for="in-subtareas">Subtareas</label>
+          <textarea id="in-subtareas" placeholder="Pendientes o pasos que dependen de este trámite…"></textarea>
+        </div>
 
         <div class="form-section-label span-2">Línea de tiempo</div>
         <div class="field span-2">
@@ -842,6 +846,10 @@
       <div class="field span-2">
         <label for="hito-notas">Notas</label>
         <input type="text" id="hito-notas" placeholder="Opcional">
+      </div>
+      <div class="field span-2">
+        <label for="hito-subtareas">Subtareas</label>
+        <textarea id="hito-subtareas" placeholder="Pendientes o pasos que dependen de esta actividad…"></textarea>
       </div>
       <div class="field span-2">
         <label class="checkbox-inline"><input type="checkbox" id="hito-incluir-linea" checked> Mostrar en la línea de tiempo</label>
@@ -1552,6 +1560,8 @@
       fechaConclusionReal: t.fechaConclusionReal || "",
       tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad,
       responsable: t.responsable || "", notas: t.notas || "",
+      subtareas: t.subtareas || "",
+      dependeDe: t.dependeDe || "",
       incluirLineaTiempo: t.incluirLineaTiempo === false
     };
     api("/api/tramites/" + id, { method: "PUT", body: JSON.stringify(payload) })
@@ -1577,7 +1587,7 @@
         fechaInicio: t.fechaInicio, fechaVencimiento: t.fechaVencimiento, estatus: t.estatus,
         presupuesto: t.presupuesto, costoGestion: t.costoGestion, costoDerechos: t.costoDerechos, costoGratificacion: t.costoGratificacion,
         fechaConclusionReal: t.fechaConclusionReal, tiempoValor: t.tiempoValor, tiempoUnidad: t.tiempoUnidad,
-        responsable: t.responsable
+        responsable: t.responsable, dependeDe: t.dependeDe || null, subtareas: t.subtareas || ""
       });
     });
 
@@ -1600,7 +1610,7 @@
         id: "h:" + h.id, rawId: h.id, kind: "hito", area: h.area,
         nombre: h.nombre, proyectoId: h.proyectoId,
         fechaInicio: h.fechaInicio || h.fechaVencimiento, fechaVencimiento: h.fechaVencimiento || h.fechaInicio,
-        estatus: h.estatus, notas: h.notas, responsable: h.responsable
+        estatus: h.estatus, notas: h.notas, responsable: h.responsable, dependeDe: h.dependeDe || null, subtareas: h.subtareas || ""
       });
     });
 
@@ -1716,10 +1726,18 @@
         var left = xFor(s);
         var width = Math.max(6, xFor(e) - left);
         var sub = it.responsable ? it.responsable : "Sin responsable";
+        // Ancla: marca visualmente que esta actividad depende de otra y por
+        // lo tanto no puede avanzar hasta que esa se resuelva.
+        var anchorHtml = it.dependeDe ? (
+          '<div class="tl-anchor" style="left:' + Math.max(0, left - 16) + 'px;top:' + (BAR_TOP + 2) + 'px" title="No puede avanzar: depende de \'' + escapeHtml(dependeRefLabel(it.dependeDe)) + '\'">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>' +
+          '</div>'
+        ) : '';
         return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px;height:' + ROW_H + 'px">' +
           '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + (mostrarResp ? '<span class="tl-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>' +
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
+            anchorHtml +
             '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px;top:' + BAR_TOP + 'px"></div>' +
           '</div>' +
         '</div>';
@@ -1891,6 +1909,8 @@
       (isTramite ? '<div class="tt-row"><span>Vencimiento</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>' : '<div class="tt-row"><span>Fecha</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>') +
       (it.fechaConclusionReal ? '<div class="tt-row"><span>Terminación</span><span>' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span></div>' : '') +
       (it.notas ? '<div class="tt-row"><span>Notas</span><span>' + escapeHtml(it.notas) + '</span></div>' : '') +
+      (it.subtareas ? '<div class="tt-row"><span>Subtareas</span><span>' + escapeHtml(it.subtareas) + '</span></div>' : '') +
+      (it.dependeDe ? '<div class="tt-row"><span>⚓ Depende de</span><span>' + escapeHtml(dependeRefLabel(it.dependeDe)) + '</span></div>' : '') +
       '<div class="tt-row"><span>Estado</span><span>' + STATE_LABEL[st] + (st !== "completado" ? " · " + daysLabel(it) : "") + '</span></div>';
     tooltip.classList.add("show");
     positionTooltip(ev);
@@ -2067,6 +2087,7 @@
     document.getElementById("in-conclusion-real").value = it ? (it.fechaConclusionReal || "") : "";
     document.getElementById("in-responsable").value = it ? (it.responsable || "") : "";
     document.getElementById("in-notas").value = it ? (it.notas || "") : "";
+    document.getElementById("in-subtareas").value = it ? (it.subtareas || "") : "";
     document.getElementById("in-incluir-linea").checked = it ? it.incluirLineaTiempo !== false : true;
     populateDependeSelect("in-depende", it ? ("t:" + it.id) : null);
     document.getElementById("in-depende").value = it ? (it.dependeDe || "") : "";
@@ -2175,6 +2196,7 @@
       tiempoUnidad: existing ? existing.tiempoUnidad : "dias",
       responsable: document.getElementById("in-responsable").value.trim(),
       notas: document.getElementById("in-notas").value.trim(),
+      subtareas: document.getElementById("in-subtareas").value.trim(),
       dependeDe: document.getElementById("in-depende").value || "",
       incluirLineaTiempo: document.getElementById("in-incluir-linea").checked
     };
@@ -2271,7 +2293,8 @@
       presupuesto: (t.presupuesto !== undefined && t.presupuesto !== null && t.presupuesto !== "") ? Number(t.presupuesto) : null,
       fechaConclusionReal: t.fechaConclusionReal || "",
       tiempoValor: t.tiempoValor ? Number(t.tiempoValor) : null,
-      tiempoUnidad: DURATION_UNITS.indexOf(t.tiempoUnidad) !== -1 ? t.tiempoUnidad : "dias"
+      tiempoUnidad: DURATION_UNITS.indexOf(t.tiempoUnidad) !== -1 ? t.tiempoUnidad : "dias",
+      subtareas: (t.subtareas || "").toString()
     };
   }
   function sanitizePagoRecord(pg, tramiteIdMap, idMap) {
@@ -2312,6 +2335,7 @@
       estatus: ["no_iniciado", "en_proceso", "completado"].indexOf(h.estatus) !== -1 ? h.estatus : "en_proceso",
       responsable: (h.responsable || "").toString(),
       notas: (h.notas || "").toString(),
+      subtareas: (h.subtareas || "").toString(),
       incluirLineaTiempo: h.incluirLineaTiempo === false ? false : true
     };
   }
@@ -2671,6 +2695,7 @@
       proyectoId: h.proyectoId, nombre: h.nombre, area: h.area,
       fechaInicio: h.fechaInicio || "", fechaVencimiento: h.fechaVencimiento || "",
       estatus: h.estatus, responsable: h.responsable || "", notas: h.notas || "",
+      subtareas: h.subtareas || "",
       dependeDe: h.dependeDe || "",
       incluirLineaTiempo: h.incluirLineaTiempo === false
     };
@@ -2737,6 +2762,7 @@
     document.getElementById("hito-estatus").value = h ? h.estatus : "en_proceso";
     document.getElementById("hito-responsable").value = h ? (h.responsable || "") : "";
     document.getElementById("hito-notas").value = h ? (h.notas || "") : "";
+    document.getElementById("hito-subtareas").value = h ? (h.subtareas || "") : "";
     document.getElementById("hito-incluir-linea").checked = h ? h.incluirLineaTiempo !== false : true;
     populateDependeSelect("hito-depende", h ? ("h:" + h.id) : null);
     document.getElementById("hito-depende").value = h ? (h.dependeDe || "") : "";
@@ -2795,6 +2821,7 @@
       estatus: document.getElementById("hito-estatus").value,
       responsable: document.getElementById("hito-responsable").value.trim(),
       notas: document.getElementById("hito-notas").value.trim(),
+      subtareas: document.getElementById("hito-subtareas").value.trim(),
       dependeDe: document.getElementById("hito-depende").value || "",
       incluirLineaTiempo: document.getElementById("hito-incluir-linea").checked
     };
