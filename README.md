@@ -87,6 +87,14 @@ información, y queda protegida con una contraseña.
   el **año en curso**, no desde el inicio de todo el historial; para consultar
   años anteriores basta con recorrer el scroll horizontal hacia la izquierda
   con el cursor.
+  - **Áreas replegadas por default**: junto al nombre de cada área hay un
+    botón "Mostrar actividades" — las actividades de cada área empiezan
+    escondidas (solo se ve el encabezado del área y su barra de "Total del
+    área"), para que la línea de tiempo completa quepa de un vistazo al
+    entrar, sin tener que ir bajando el scroll para ver todas las áreas. Con
+    el botón despliegas las actividades de la(s) área(s) que te interesa ver
+    el detalle, y con el mismo botón ("Ocultar actividades") las vuelves a
+    replegar.
   Junto al filtro de áreas hay una casilla de **Responsable**: viene destildada
   por default para que la línea de tiempo se vea compacta (una fila más
   angosta por actividad); al activarla, cada fila crece un poco y muestra

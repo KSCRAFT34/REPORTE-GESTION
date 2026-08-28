@@ -1338,7 +1338,7 @@
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {} }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {}, expandedAreas: {} }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1937,7 +1937,14 @@
       var rows = groups[gName].filter(function (it) { return itemRange(it).s; })
         .slice().sort(function (a, b) { var ra = itemRange(a).s, rb = itemRange(b).s; return (ra ? ra.getTime() : 0) - (rb ? rb.getTime() : 0); });
       var totalCost = rows.filter(function (it) { return it.kind === "tramite"; }).reduce(function (s, it) { return s + totalCosto(it); }, 0);
-      var rowsHtml = rows.map(function (it) {
+      // Las actividades de cada área se muestran replegadas (escondidas) por
+      // default — con tantas actividades juntas, la línea de tiempo completa
+      // no cabía sin scrollear mucho; así solo se ve el resumen del área y,
+      // con el botón, se despliegan las actividades de las que sí quieras ver
+      // el detalle. state.timelineView.expandedAreas guarda qué áreas están
+      // desplegadas (si no está la llave, está replegada).
+      var expanded = !!state.timelineView.expandedAreas[gName];
+      var rowsHtml = !expanded ? "" : rows.map(function (it) {
         var st = computeState(it);
         var r = itemRange(it);
         var s = r.s, e = r.e;
@@ -1995,14 +2002,27 @@
           '</div>' +
         '</div>';
       }
+      var toggleHtml = '<button type="button" class="tl-group-toggle" data-area="' + gName + '" aria-expanded="' + expanded + '" title="' + (expanded ? "Ocultar actividades de esta área" : "Mostrar actividades de esta área") + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+        (expanded ? "Ocultar actividades" : "Mostrar actividades") +
+      '</button>';
       return '<div class="tl-group" style="width:' + (LABEL_W + trackWidth) + 'px">' +
-        '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[gName] || "Otro") + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + costSuffix + '</span></div>' +
+        '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[gName] || "Otro") + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + costSuffix + '</span>' + toggleHtml + '</div>' +
         summaryHtml +
         rowsHtml +
       '</div>';
     }).join("");
 
     host.innerHTML = axisHtml + groupsHtml;
+
+    host.querySelectorAll(".tl-group-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var area = btn.dataset.area;
+        if (state.timelineView.expandedAreas[area]) delete state.timelineView.expandedAreas[area];
+        else state.timelineView.expandedAreas[area] = true;
+        renderTimelineView();
+      });
+    });
 
     host.querySelectorAll(".tl-bar").forEach(function (bar) {
       var it = filtered.find(function (x) { return x.id === bar.dataset.id; });
