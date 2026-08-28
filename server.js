@@ -19,7 +19,7 @@ const IS_PROD = process.env.NODE_ENV === "production";
 const PAGO_TIPOS = ["gestion", "derechos"];
 const ESTATUS_VALIDOS = ["no_iniciado", "en_proceso", "completado"];
 const DURATION_UNITS = ["dias", "semanas", "meses"];
-const HITO_AREAS = ["comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+const HITO_AREAS = ["comercial", "preobra", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
 const ACCESO_ROLES = ["editor", "viewer", "area"];
 
 if (!EDIT_PASSWORD) {

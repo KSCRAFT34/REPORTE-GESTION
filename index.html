@@ -165,6 +165,7 @@
     <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
       <span class="area-filter-label">Área:</span>
       <label><input type="checkbox" checked data-hito-area="comercial"> Comercial</label>
+      <label><input type="checkbox" checked data-hito-area="preobra"> Preobra</label>
       <label><input type="checkbox" checked data-hito-area="obra"> Obra</label>
       <label><input type="checkbox" checked data-hito-area="diseno"> Diseño</label>
       <label><input type="checkbox" checked data-hito-area="administracion"> Administración</label>
@@ -347,6 +348,25 @@
           <div class="hint" id="tl-compare-hint">Cada barra muestra el total de días que le tomará a esa área terminar todo su trabajo en ese proyecto (de cuándo empieza su primera actividad a cuándo termina la última).</div>
         </div>
       </div>
+      <div class="area-filter">
+        <span class="area-filter-label">Vista:</span>
+        <select id="tl-compare-vista" style="max-width:140px">
+          <option value="mensual">Mensual</option>
+          <option value="trimestral" selected>Trimestral</option>
+          <option value="anual">Anual</option>
+        </select>
+        <span class="area-filter-label" style="margin-left:18px">Zoom:</span>
+        <div style="display:inline-flex;align-items:center;gap:6px">
+          <button type="button" class="icon-btn" id="btn-tl-compare-zoom-out" aria-label="Alejar" title="Alejar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <span class="hint" id="tl-compare-zoom-pct" style="min-width:40px;text-align:center">100%</span>
+          <button type="button" class="icon-btn" id="btn-tl-compare-zoom-in" aria-label="Acercar" title="Acercar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button type="button" class="link-btn" id="btn-tl-compare-zoom-reset" style="margin-left:4px">Restablecer</button>
+        </div>
+      </div>
       <div class="timeline-scroll" id="timeline-compare-scroll">
         <div class="timeline-inner" id="timeline-compare-inner"><div class="tl-empty">Selecciona al menos un proyecto para comparar.</div></div>
       </div>
@@ -382,6 +402,7 @@
         <span class="area-filter-label">Mostrar:</span>
         <label><input type="checkbox" data-area="tramites" checked> Trámites</label>
         <label><input type="checkbox" data-area="comercial" checked> Comercial</label>
+        <label><input type="checkbox" data-area="preobra" checked> Preobra</label>
         <label><input type="checkbox" data-area="obra" checked> Obra</label>
         <label><input type="checkbox" data-area="diseno" checked> Diseño</label>
         <label><input type="checkbox" data-area="administracion" checked> Administración</label>
@@ -813,6 +834,7 @@
         <label for="hito-area">Área <span class="req">*</span></label>
         <select id="hito-area">
           <option value="comercial">Comercial</option>
+          <option value="preobra">Preobra</option>
           <option value="obra">Obra</option>
           <option value="diseno">Diseño</option>
           <option value="administracion">Administración</option>
@@ -1139,6 +1161,7 @@
         <input type="text" id="plant-add-hito-nombre" placeholder="Agregar actividad a la plantilla…" style="flex:1;min-width:200px">
         <select id="plant-add-hito-area">
           <option value="comercial">Comercial</option>
+          <option value="preobra">Preobra</option>
           <option value="obra">Obra</option>
           <option value="diseno">Diseño</option>
           <option value="administracion">Administración</option>
@@ -1279,8 +1302,10 @@
 
   function uid() { return "id" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
 
-  var HITO_AREAS = ["comercial", "obra", "due_diligence", "otro"];
-  var AREA_LABELS = { tramites: "Trámites", comercial: "Comercial", obra: "Obra", diseno: "Diseño", administracion: "Administración", due_diligence: "Due diligence", escrituracion: "Escrituración", otro: "Otro" };
+  // Usada solo al importar un respaldo JSON, para no aceptar un área inventada
+  // que ya no exista — debe reflejar las mismas áreas que el servidor acepta.
+  var HITO_AREAS = ["comercial", "preobra", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+  var AREA_LABELS = { tramites: "Trámites", comercial: "Comercial", preobra: "Preobra", obra: "Obra", diseno: "Diseño", administracion: "Administración", due_diligence: "Due diligence", escrituracion: "Escrituración", otro: "Otro" };
 
   var state = {
     role: null,
@@ -1311,9 +1336,9 @@
     deletingProyectoId: null,
     editingHitoId: null,
     deletingHitoId: null,
-    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, vencido: true, completado: true } },
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {} }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {} }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1820,7 +1845,7 @@
       host.innerHTML = '<div class="tl-empty">' + (state.proyectos.length ? "No hay elementos que coincidan con estos filtros." : "Registra un proyecto y agrega trámites para ver la línea de tiempo.") + '</div>';
       return;
     }
-    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "obra", "administracion", "escrituracion", "otro"];
+    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "preobra", "obra", "administracion", "escrituracion", "otro"];
     var groups = {};
     filtered.forEach(function (it) {
       var g = it.area || "otro";
@@ -2125,6 +2150,8 @@
     if (compare) {
       document.getElementById("tl-panel").style.display = "none";
       document.getElementById("tl-empty-panel").style.display = "none";
+      document.getElementById("tl-compare-vista").value = state.timelineView.granularidad || "trimestral";
+      document.getElementById("tl-compare-zoom-pct").textContent = Math.round((state.timelineView.zoom || 1) * 100) + "%";
     }
   }
   function getSelectedCompareProyectos() {
@@ -2150,8 +2177,8 @@
       host.innerHTML = '<div class="tl-empty">Selecciona al menos un proyecto para comparar.</div>';
       return;
     }
-    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "obra", "administracion", "escrituracion", "otro"];
-    var allAreas = { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true };
+    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "preobra", "obra", "administracion", "escrituracion", "otro"];
+    var allAreas = { tramites: true, comercial: true, preobra: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true };
     var spansByProyecto = {};
     selected.forEach(function (p) {
       var items = getTimelineItems({ proyectoId: p.id, areas: allAreas });
@@ -2276,6 +2303,28 @@
     state.timelineView.compareProyectos = {};
     renderTimelineCompareChecklist();
     renderTimelineCompare();
+  });
+  // Vista y zoom del modo "Comparar proyectos" comparten el mismo estado
+  // (granularidad/zoom) que el modo de un proyecto — así que cambiarlos aquí
+  // también se refleja si vuelves al modo normal, y viceversa.
+  document.getElementById("tl-compare-vista").addEventListener("change", function (e) {
+    state.timelineView.granularidad = e.target.value;
+    renderTimelineCompare();
+  });
+  function setTlCompareZoom(z) {
+    z = Math.max(TL_ZOOM_MIN, Math.min(TL_ZOOM_MAX, Math.round(z * 100) / 100));
+    state.timelineView.zoom = z;
+    document.getElementById("tl-compare-zoom-pct").textContent = Math.round(z * 100) + "%";
+    renderTimelineCompare();
+  }
+  document.getElementById("btn-tl-compare-zoom-out").addEventListener("click", function () {
+    setTlCompareZoom((state.timelineView.zoom || 1) - TL_ZOOM_STEP);
+  });
+  document.getElementById("btn-tl-compare-zoom-in").addEventListener("click", function () {
+    setTlCompareZoom((state.timelineView.zoom || 1) + TL_ZOOM_STEP);
+  });
+  document.getElementById("btn-tl-compare-zoom-reset").addEventListener("click", function () {
+    setTlCompareZoom(1);
   });
 
   // Al abrir un proyecto (o al entrar a la pantalla), la primera vista debe
@@ -3906,7 +3955,7 @@
   }
   var dlgAccesos = document.getElementById("dlg-accesos");
   var dlgDeleteAcceso = document.getElementById("dlg-delete-acceso");
-  var ACCESO_AREAS = ["comercial", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
+  var ACCESO_AREAS = ["comercial", "preobra", "obra", "diseno", "administracion", "due_diligence", "escrituracion", "otro"];
   function populateAccAreaSelect() {
     var sel = document.getElementById("acc-area");
     sel.innerHTML = ACCESO_AREAS.map(function (a) { return '<option value="' + a + '">' + (AREA_LABELS[a] || a) + '</option>'; }).join("");
@@ -4097,6 +4146,14 @@
       document.getElementById("nav-accesos").style.display = state.role === "editor" ? "" : "none";
       document.getElementById("btn-add-hito").classList.toggle("force-show", state.role === "area");
       document.getElementById("btn-hito-nombre-add-toggle").style.display = state.role === "area" ? "none" : "";
+      // Por pedido de Karen: mientras afina el Dashboard, la pantalla de
+      // inicio es "Líneas de tiempo" en vez del Dashboard. Para regresar al
+      // Dashboard como inicio, basta con quitar (o comentar) esta línea.
+      // Importante: esto va ANTES de refreshAll() (no encadenado después) —
+      // si se llama tras esperar a refreshAll(), puede resolver después de
+      // que el usuario ya haya hecho clic en otra pantalla, y lo regresaría
+      // de golpe a Línea de tiempo sin que lo haya pedido.
+      showView("timeline");
       return refreshAll();
     }).catch(function () { window.location.href = "/login"; });
   }

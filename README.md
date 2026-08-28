@@ -7,6 +7,11 @@ información, y queda protegida con una contraseña.
 
 ## Qué incluye
 
+> **Nota temporal:** mientras se afina el Dashboard, la pantalla con la que
+> abre la app al entrar es **Líneas de tiempo** en vez del Dashboard. Es un
+> ajuste reversible en cualquier momento — basta con pedirlo para regresar el
+> Dashboard como pantalla de inicio.
+
 - Una sola URL para todo el equipo, con distintos niveles de acceso que tú
   misma administras desde la pantalla de **Accesos** (ver abajo).
 - Proyectos, trámites con costos de gestión/derechos/gratificación, presupuesto y
@@ -15,7 +20,7 @@ información, y queda protegida con una contraseña.
 - Pagos reales (estado de cuenta) separados de la proyección de costos.
 - Subelementos dentro de un trámite (por ejemplo, los distintos pasos que exige una
   Licencia de Edificación), cada uno con su propia fecha y estatus.
-- **Áreas** (comercial, obra, diseño, administración, due diligence,
+- **Áreas** (comercial, preobra, obra, diseño, administración, due diligence,
   escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
   actividad igual que un trámite — con fecha de inicio y término, responsable, y su
   propio color por área — en vez de una fecha suelta. Se puede filtrar por área
@@ -68,8 +73,8 @@ información, y queda protegida con una contraseña.
 - **Líneas de tiempo**: pantalla propia en el menú izquierdo, separada del
   dashboard (con tanta información, mezclado con la tabla no se leía bien).
   Eliges un proyecto y ves su cronograma completo — trámites y áreas
-  juntos, agrupados por tipo de actividad (Trámites, Comercial, Obra, Diseño,
-  Administración, Due diligence, Escrituración, Otro) — con un botón por
+  juntos, agrupados por tipo de actividad (Trámites, Comercial, Preobra, Obra,
+  Diseño, Administración, Due diligence, Escrituración, Otro) — con un botón por
   trámite/subelemento/actividad para decidir si aparece ahí. La tabla y los
   filtros de trámites viven en "Áreas" (ver arriba); la parte visual de Gantt
   vive solo aquí.
@@ -124,7 +129,10 @@ información, y queda protegida con una contraseña.
     área — para comparar de un vistazo qué tanto le toma a cada proyecto
     completar, por ejemplo, toda su obra o todos sus trámites. Un proyecto sin
     actividades capturadas todavía en esa área simplemente se marca como "Sin
-    actividad en esta área".
+    actividad en esta área". Este modo también tiene su propio selector de
+    **Vista** (Mensual, Trimestral o Anual) y sus controles de **Zoom**,
+    igual que en "Un proyecto" — cambiar la vista o el zoom en un modo se
+    refleja también en el otro, porque comparten el mismo ajuste.
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir

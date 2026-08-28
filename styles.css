@@ -29,6 +29,8 @@
     --info-tint: rgba(124,92,191,0.14);
     --pending: #7e3f9d;
     --pending-tint: rgba(126,63,157,0.14);
+    --preobra: #0e8a7d;
+    --preobra-tint: rgba(14,138,125,0.14);
     --neutral-tint: rgba(93,88,80,0.12);
     --shadow-card: 0 1px 2px rgba(28,25,20,0.06);
     --shadow-pop: 0 12px 32px rgba(28,25,20,0.16), 0 2px 8px rgba(28,25,20,0.08);
@@ -70,6 +72,8 @@
       --info-tint: rgba(179,157,219,0.18);
       --pending: #d199e8;
       --pending-tint: rgba(209,153,232,0.20);
+      --preobra: #45c4b3;
+      --preobra-tint: rgba(69,196,179,0.20);
       --neutral-tint: rgba(199,193,180,0.14);
       --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
       --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -106,6 +110,8 @@
     --info-tint: rgba(179,157,219,0.18);
     --pending: #d199e8;
     --pending-tint: rgba(209,153,232,0.20);
+    --preobra: #45c4b3;
+    --preobra-tint: rgba(69,196,179,0.20);
     --neutral-tint: rgba(199,193,180,0.14);
     --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
     --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -430,6 +436,7 @@
   .pill .dot.st-vencido { background: var(--critical); }
   .pill .dot.st-completado { background: var(--text-muted); }
   .pill.area-comercial { background: var(--accent-tint); color: var(--accent); }
+  .pill.area-preobra { background: var(--preobra-tint); color: var(--preobra); }
   .pill.area-obra { background: var(--warning-tint); color: var(--warning); }
   .pill.area-diseno { background: var(--info-tint); color: var(--info); }
   .pill.area-administracion { background: var(--good-tint); color: var(--good); }
