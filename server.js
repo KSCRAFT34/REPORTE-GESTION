@@ -868,10 +868,11 @@ app.put("/api/tramites/:id", requireEditor, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const prevRes = await client.query("SELECT fecha_inicio, fecha_vencimiento FROM tramites WHERE id=$1 FOR UPDATE", [req.params.id]);
+    const prevRes = await client.query("SELECT fecha_inicio, fecha_vencimiento, fecha_conclusion_real FROM tramites WHERE id=$1 FOR UPDATE", [req.params.id]);
     if (!prevRes.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "Trámite no encontrado." }); }
     const prevInicio = dateStr(prevRes.rows[0].fecha_inicio);
     const prevFecha = dateStr(prevRes.rows[0].fecha_vencimiento);
+    const prevTerminacion = dateStr(prevRes.rows[0].fecha_conclusion_real);
 
     const result = await client.query(
       `UPDATE tramites SET proyecto_id=$1, nombre=$2, presupuesto=$3, costo_gestion=$4, costo_derechos=$5,
@@ -884,6 +885,7 @@ app.put("/api/tramites/:id", requireEditor, async (req, res) => {
 
     await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "inicio", fechaAnterior: prevInicio, fechaNueva: data.fechaInicio, motivo: "manual" });
     await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "vencimiento", fechaAnterior: prevFecha, fechaNueva: data.fechaVencimiento, motivo: "manual" });
+    await logFechaChange(client, { tipo: "tramite", itemId: req.params.id, itemNombre: data.nombre, proyectoId: data.proyectoId, campo: "terminacion", fechaAnterior: prevTerminacion, fechaNueva: data.fechaConclusionReal, motivo: "manual" });
 
     let cascaded = { tramites: 0, hitos: 0 };
     if (prevFecha && data.fechaVencimiento) {

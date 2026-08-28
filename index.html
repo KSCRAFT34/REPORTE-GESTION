@@ -560,7 +560,7 @@
           <span class="field-hint">Se calcula sola a partir del tiempo aproximado; también puedes ajustarla a mano.</span>
         </div>
         <div class="field span-2">
-          <label for="in-conclusion-real">Fecha de conclusión real</label>
+          <label for="in-conclusion-real">Fecha de terminación</label>
           <input type="date" id="in-conclusion-real">
           <span class="field-hint">Llénala cuando el trámite quede resuelto, para comparar contra la fecha estimada.</span>
         </div>
@@ -1505,7 +1505,7 @@
         (mDev !== null ? '<span class="sub-note ' + (mDev > 0 ? "dev-pos" : mDev < 0 ? "dev-neg" : "") + '">Presupuesto ' + fmtMoney.format(Number(it.presupuesto)) + ' (' + fmtMoneySigned(mDev) + ')</span>' : '');
       var dateSub = dur ? '<span class="sub-note">' + dur + '</span>' : '';
       if (it.fechaConclusionReal) {
-        dateSub += '<span class="sub-note ' + (tDev > 0 ? "dev-pos" : tDev < 0 ? "dev-neg" : "") + '">Real: ' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span>';
+        dateSub += '<span class="sub-note ' + (tDev > 0 ? "dev-pos" : tDev < 0 ? "dev-neg" : "") + '">Terminación: ' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span>';
       }
       return '<tr data-id="' + it.id + '">' +
         '<td class="cell-tramite"><span class="t-name">' + escapeHtml(it.nombre) + '</span>' +
@@ -1872,7 +1872,7 @@
       (dur ? '<div class="tt-row"><span>Tiempo aprox.</span><span>' + dur + '</span></div>' : '') +
       (isTramite ? '<div class="tt-row"><span>Inicio</span><span>' + fmtDate(it.fechaInicio) + '</span></div>' : '') +
       (isTramite ? '<div class="tt-row"><span>Vencimiento</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>' : '<div class="tt-row"><span>Fecha</span><span>' + fmtDate(it.fechaVencimiento) + '</span></div>') +
-      (it.fechaConclusionReal ? '<div class="tt-row"><span>Concluyó</span><span>' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span></div>' : '') +
+      (it.fechaConclusionReal ? '<div class="tt-row"><span>Terminación</span><span>' + fmtDate(it.fechaConclusionReal) + (tDev !== null ? ' (' + (tDev > 0 ? "+" : tDev < 0 ? "−" : "") + Math.abs(tDev) + 'd)' : '') + '</span></div>' : '') +
       (it.notas ? '<div class="tt-row"><span>Notas</span><span>' + escapeHtml(it.notas) + '</span></div>' : '') +
       '<div class="tt-row"><span>Estado</span><span>' + STATE_LABEL[st] + (st !== "completado" ? " · " + daysLabel(it) : "") + '</span></div>';
     tooltip.classList.add("show");
@@ -2810,7 +2810,7 @@
 
   /* ---------------- Historial de fechas ---------------- */
   var MOTIVO_LABEL = { manual: "Manual", cascada: "Automático (cascada)" };
-  var CAMPO_LABEL = { inicio: "Inicio", vencimiento: "Vencimiento" };
+  var CAMPO_LABEL = { inicio: "Inicio", vencimiento: "Vencimiento", terminacion: "Terminación" };
 
   function populateHistFiltroProyecto(preselectId) {
     var el = document.getElementById("hist-filtro-proyecto");
@@ -2846,7 +2846,12 @@
     return Object.keys(byItem).map(function (key) {
       var g = byItem[key];
       // Orden cronológico (los registros vienen del server en DESC, aquí los reordenamos ASC para calcular "original -> actual").
-      var vencEntradas = g.entradas.filter(function (e) { return e.campo === "vencimiento"; }).slice().sort(function (a, b) { return new Date(a.fecha) - new Date(b.fecha); });
+      // Para trámites el resumen se basa en la fecha de TERMINACIÓN (la real, cuando
+      // se concluye) y no en el vencimiento (que es solo el recordatorio de renovación).
+      // Las áreas (hitos) no tienen fecha de terminación separada, así que para esas
+      // se sigue usando el vencimiento de siempre.
+      var campoResumen = g.tipo === "tramite" ? "terminacion" : "vencimiento";
+      var vencEntradas = g.entradas.filter(function (e) { return e.campo === campoResumen; }).slice().sort(function (a, b) { return new Date(a.fecha) - new Date(b.fecha); });
       var fechaOriginal = vencEntradas.length ? vencEntradas[0].fechaAnterior : null;
       var fechaActual = vencEntradas.length ? vencEntradas[vencEntradas.length - 1].fechaNueva : null;
       var diffDias = null;

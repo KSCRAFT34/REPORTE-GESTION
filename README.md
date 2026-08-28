@@ -31,12 +31,17 @@ información, y queda protegida con una contraseña.
   días — y así en cadena con todo lo que dependa de esas. Ya no hay que ir moviendo
   fecha por fecha a mano cuando algo se atrasa.
 - **Historial de fechas**: reporte aparte (menú izquierdo) que registra cada vez que
-  se mueve la fecha de inicio o vencimiento de un trámite u otra área — a mano o por
-  el recorrido automático explicado arriba. Muestra cuántas veces se ha movido cada
-  actividad, su fecha original vs. la actual, y el detalle de cada cambio (fecha
-  anterior → nueva, si fue manual o automático, y cuándo). La línea de tiempo
-  principal siempre muestra solo la fecha vigente; este historial es para consultar
-  aparte qué tanto se ha movido algo.
+  se mueve la fecha de inicio, vencimiento o terminación de un trámite u otra área —
+  a mano o por el recorrido automático explicado arriba. Muestra cuántas veces se ha
+  movido cada actividad, y el detalle de cada cambio (fecha anterior → nueva, si fue
+  manual o automático, y cuándo). Para el resumen ("fecha original" vs. "fecha
+  actual" y la diferencia total), en **trámites** se usa la **fecha de terminación**
+  (antes decía "conclusión real"; ese es el dato que de verdad importa para saber si
+  algo se atrasó o adelantó, no el vencimiento que solo es el recordatorio de
+  renovación); en **áreas** (que no tienen fecha de terminación por separado) se
+  sigue usando el vencimiento de siempre. La línea de tiempo principal siempre
+  muestra solo la fecha vigente; este historial es para consultar aparte qué tanto
+  se ha movido algo.
 - **Líneas de tiempo**: pantalla propia en el menú izquierdo, separada del
   dashboard (con tanta información, mezclado con la tabla no se leía bien).
   Eliges un proyecto y ves su cronograma completo — trámites y áreas
