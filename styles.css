@@ -324,6 +324,30 @@
   .tl-bar.st-completado { background: var(--text-muted); }
   .tl-bar.tl-bar-editable { cursor: pointer; }
   .tl-bar.tl-bar-editable:hover { box-shadow: 0 0 0 2px var(--accent) inset; }
+  .tl-bar.tl-bar-hito.tl-bar-editable { cursor: default; }
+  .tl-resize-handle {
+    position: absolute; top: 0; bottom: 0; width: 9px; cursor: ew-resize; z-index: 5;
+  }
+  .tl-resize-handle.left { left: -4px; }
+  .tl-resize-handle.right { right: -4px; }
+  .tl-resize-handle::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 3px; height: 60%;
+    transform: translate(-50%, -50%); background: rgba(255,255,255,0.9); border-radius: 2px;
+    opacity: 0; transition: opacity .12s;
+  }
+  .tl-bar-hito.tl-bar-editable:hover .tl-resize-handle::after { opacity: 0.85; }
+  .tl-bar.tl-dragging { box-shadow: 0 0 0 2px var(--accent) inset; }
+  .tl-row-summary { font-weight: 600; }
+  .tl-row-summary .tl-row-label { color: var(--text-secondary); }
+  .tl-bar-summary {
+    position: absolute; height: 10px; border-radius: 3px; min-width: 6px;
+    background: repeating-linear-gradient(45deg, var(--text-secondary), var(--text-secondary) 4px, transparent 4px, transparent 8px);
+    opacity: 0.55;
+  }
+  .tl-summary-days {
+    position: absolute; top: 50%; transform: translateY(-50%); font-size: 10.5px;
+    font-family: var(--font-mono); color: var(--text-secondary); white-space: nowrap;
+  }
   .tl-today {
     position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--accent); z-index: 1;
   }

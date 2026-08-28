@@ -86,6 +86,33 @@ información, y queda protegida con una contraseña.
   mismos permisos que ya aplican en las tablas: solo un editor puede editar
   trámites, y una actividad (hito) la puede editar un editor o el usuario del
   área a la que pertenece esa actividad.
+  - **Alargar/acortar actividades arrastrando**: en las barras de **actividades**
+    (no en las de trámites) aparecen dos manijas, una en cada extremo, al
+    pasar el cursor sobre la barra. Arrastra la manija izquierda para mover la
+    fecha de inicio, o la derecha para mover la fecha de término — al soltar,
+    la actividad se guarda con la nueva fecha automáticamente, con los mismos
+    permisos de edición de siempre (editor, o el usuario de esa área). Esto
+    usa el mismo mecanismo de "recorrido automático" que ya existía: si otras
+    actividades dependen de la que moviste, se recorren solas y aparece un
+    aviso con cuántas se ajustaron. Si una actividad todavía no tiene fecha de
+    término capturada, no se puede mover su inicio arrastrando — hay que
+    ponerle primero una fecha de término desde su formulario.
+  - **Barra de resumen por área**: arriba de las actividades de cada área
+    (incluyendo "Trámites") aparece una barra adicional, más tenue y con
+    rayas, que muestra cuántos **días en total** le toma a esa área terminar
+    todo su trabajo en ese proyecto — desde que arranca su primera actividad
+    hasta que termina la última. Se recalcula sola en cada cambio (incluyendo
+    justo después de alargar o acortar una actividad arrastrando), así que
+    siempre refleja el estado más reciente sin que tengas que hacer nada.
+  - **Comparar proyectos**: arriba del selector de proyecto hay dos modos,
+    "Un proyecto" (el de siempre) y "Comparar proyectos". En este segundo
+    modo eliges, con casillas, cualquier combinación de proyectos (por
+    ejemplo FLX La Cacho + Insurgentes 320 + Vallarta) y ves, agrupado por
+    área, solo esas barras de resumen — una fila por proyecto dentro de cada
+    área — para comparar de un vistazo qué tanto le toma a cada proyecto
+    completar, por ejemplo, toda su obra o todos sus trámites. Un proyecto sin
+    actividades capturadas todavía en esa área simplemente se marca como "Sin
+    actividad en esta área".
 - Pagos "de paquete" (ligados directo a un proyecto, sin trámite específico) y un
   campo libre de "Pagado a" (Gestor, Anticipo Gestor, Firma de DRO, o lo que escribas).
 - Menú de **Catálogos** en la barra izquierda, con tres listas de apoyo que puedes ir

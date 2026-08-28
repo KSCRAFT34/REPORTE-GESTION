@@ -328,14 +328,39 @@
     </div>
 
     <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
+      <span class="area-filter-label">Modo:</span>
+      <label><input type="radio" name="tl-modo" id="tl-modo-proyecto" checked> Un proyecto</label>
+      <label style="margin-left:14px"><input type="radio" name="tl-modo" id="tl-modo-comparar"> Comparar proyectos</label>
+    </div>
+
+    <div class="area-filter" id="tl-modo-proyecto-wrap" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
       <span class="area-filter-label">Proyecto:</span>
       <select id="tl-select-proyecto" style="max-width:260px"><option value="">Selecciona un proyecto…</option></select>
+    </div>
+
+    <div class="area-filter" id="tl-modo-comparar-wrap" style="display:none;border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px;flex-wrap:wrap;row-gap:8px">
+      <span class="area-filter-label">Proyectos a comparar:</span>
+      <span id="tl-compare-checklist" style="display:contents"></span>
+      <button type="button" class="link-btn" id="btn-tl-compare-todas" style="margin-left:12px">Todos</button>
+      <button type="button" class="link-btn" id="btn-tl-compare-ninguno">Ninguno</button>
     </div>
 
     <div class="panel" id="tl-empty-panel">
       <div class="empty-state" id="tl-empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="11" y2="18"/></svg>
         <div>Selecciona un proyecto arriba para ver su línea de tiempo.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="tl-compare-panel" style="display:none">
+      <div class="panel-head">
+        <div>
+          <h2>Comparar proyectos — por área</h2>
+          <div class="hint" id="tl-compare-hint">Cada barra muestra el total de días que le tomará a esa área terminar todo su trabajo en ese proyecto (de cuándo empieza su primera actividad a cuándo termina la última).</div>
+        </div>
+      </div>
+      <div class="timeline-scroll" id="timeline-compare-scroll">
+        <div class="timeline-inner" id="timeline-compare-inner"><div class="tl-empty">Selecciona al menos un proyecto para comparar.</div></div>
       </div>
     </div>
 
@@ -1061,8 +1086,9 @@
             <input type="text" id="plant-nombre" placeholder="p. ej. Plantilla CDMX">
           </div>
           <div class="field">
-            <label for="plant-proyecto-base">Proyecto base <span class="req">*</span></label>
+            <label for="plant-proyecto-base">Copiar de este proyecto <span class="req">*</span></label>
             <select id="plant-proyecto-base"><option value="">Selecciona un proyecto…</option></select>
+            <div class="muted" style="font-size:11.5px;margin-top:3px" id="plant-proyecto-base-hint"></div>
           </div>
         </div>
         <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
@@ -1142,7 +1168,7 @@
         <p style="margin:0 0 10px;color:var(--text-secondary);font-size:12.5px">Se crearán todos estos trámites y actividades en el proyecto que elijas, como "No iniciado", con fecha de inicio de hoy (para que se vean de inmediato en la Línea de tiempo) y sin vencimiento ni costos — solo te faltará ajustar esas fechas y capturar los costos en cada uno.</p>
         <div class="form-grid" style="margin-bottom:6px">
           <div class="field">
-            <label for="plant-aplicar-proyecto">Proyecto destino</label>
+            <label for="plant-aplicar-proyecto">Agregar en este proyecto</label>
             <select id="plant-aplicar-proyecto"><option value="">Selecciona un proyecto…</option></select>
           </div>
           <div class="field" style="align-self:end">
@@ -1301,12 +1327,13 @@
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {} }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 
   function parseDate(s) { if (!s) return null; var d = new Date(s + "T00:00:00"); return isNaN(d) ? null : d; }
+  function isoDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function fmtDate(s) {
     var d = parseDate(s);
     if (!d) return "—";
@@ -1771,6 +1798,22 @@
     return { s: s, e: e };
   }
 
+  // Resumen de un área: desde que empieza su primera actividad hasta que
+  // termina la última — es lo que tarda esa área en cerrar todo su trabajo.
+  // Puramente derivado (no se guarda en la base): se recalcula en cada
+  // render, incluyendo justo después de alargar/acortar una barra.
+  function groupSpan(rows) {
+    var start = null, end = null;
+    rows.forEach(function (it) {
+      var r = itemRange(it);
+      if (r.s && (!start || r.s < start)) start = r.s;
+      if (r.e && (!end || r.e > end)) end = r.e;
+    });
+    if (!start || !end) return null;
+    var days = Math.max(1, Math.round((end - start) / MS_DAY) + 1);
+    return { start: start, end: end, days: days };
+  }
+
   function renderTimeline(filtered) {
     var host = document.getElementById("timeline-inner");
     if (!filtered.length) {
@@ -1841,6 +1884,17 @@
       var frac = (date - periodStart(date)) / (periodDaysOf(date) * MS_DAY);
       return Math.round(idx * UNIT_W + frac * UNIT_W);
     }
+    // Inversa de xFor(): dado un x en pixeles dentro del track, regresa el día
+    // (a medianoche) que le corresponde — usada para el arrastre de barras.
+    function dateFor(x) {
+      if (!activePeriods.length) return new Date(todayMid);
+      var idx = Math.max(0, Math.min(activePeriods.length - 1, Math.floor(x / UNIT_W)));
+      var period = activePeriods[idx];
+      var frac = Math.max(0, Math.min(1, (x - idx * UNIT_W) / UNIT_W));
+      var ms = periodStart(period).getTime() + frac * periodDaysOf(period) * MS_DAY;
+      var d = new Date(ms);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
 
     var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
       activePeriods.map(function (m, i) {
@@ -1872,18 +1926,45 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>' +
           '</div>'
         ) : '';
+        // Las manijas para alargar/acortar solo aplican a actividades (hitos),
+        // no a trámites — así lo pidió Karen: mover una actividad recalcula
+        // sola la barra de resumen de su área.
+        var isHito = it.kind === "hito";
+        var canDrag = isHito && timelineItemEditable(it);
+        var handlesHtml = canDrag
+          ? '<div class="tl-resize-handle left" data-id="' + it.id + '" data-edge="start" title="Arrastra para mover la fecha de inicio"></div>' +
+            '<div class="tl-resize-handle right" data-id="' + it.id + '" data-edge="end" title="Arrastra para mover la fecha de término"></div>'
+          : '';
         return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px;height:' + ROW_H + 'px">' +
           '<div class="tl-row-label' + (it.kind !== "tramite" ? " tl-row-secondary" : "") + '">' + escapeHtml(it.nombre) + (mostrarResp ? '<span class="tl-sub">' + escapeHtml(sub) + '</span>' : '') + '</div>' +
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
             anchorHtml +
-            '<div class="tl-bar st-' + st + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px;top:' + BAR_TOP + 'px"></div>' +
+            '<div class="tl-bar st-' + st + (isHito ? ' tl-bar-hito' : '') + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px;top:' + BAR_TOP + 'px">' + handlesHtml + '</div>' +
           '</div>' +
         '</div>';
       }).join("");
       var costSuffix = gName === "tramites" ? (' · ' + fmtMoney.format(totalCost)) : "";
+      // Barra de resumen del área: del inicio de su primera actividad al
+      // término de la última — se recalcula en cada render, así que refleja
+      // de inmediato cualquier arrastre que mueva las barras individuales.
+      var span = groupSpan(rows);
+      var summaryHtml = '';
+      if (span) {
+        var sLeft = xFor(span.start);
+        var sWidth = Math.max(6, xFor(span.end) - sLeft);
+        summaryHtml = '<div class="tl-row tl-row-summary" style="width:' + (LABEL_W + trackWidth) + 'px;height:' + ROW_H + 'px">' +
+          '<div class="tl-row-label">Total del área</div>' +
+          '<div class="tl-track" style="width:' + trackWidth + 'px">' +
+            '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
+            '<div class="tl-bar-summary" style="left:' + sLeft + 'px;width:' + sWidth + 'px;top:' + (Math.round(ROW_H / 2) - 5) + 'px"></div>' +
+            '<span class="tl-summary-days" style="left:' + (sLeft + sWidth + 8) + 'px;top:' + (Math.round(ROW_H / 2)) + 'px">' + span.days + ' día' + (span.days === 1 ? "" : "s") + '</span>' +
+          '</div>' +
+        '</div>';
+      }
       return '<div class="tl-group" style="width:' + (LABEL_W + trackWidth) + 'px">' +
         '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[gName] || "Otro") + '</h3><span class="muted">' + rows.length + ' elemento' + (rows.length === 1 ? "" : "s") + costSuffix + '</span></div>' +
+        summaryHtml +
         rowsHtml +
       '</div>';
     }).join("");
@@ -1898,8 +1979,58 @@
       bar.addEventListener("mouseleave", hideTooltip);
       if (timelineItemEditable(it)) {
         bar.classList.add("tl-bar-editable");
-        bar.addEventListener("click", function () { openTimelineItemEditor(it); });
+        bar.addEventListener("click", function (ev) {
+          if (bar.dataset.justDragged === "1") { bar.dataset.justDragged = ""; return; }
+          openTimelineItemEditor(it);
+        });
       }
+    });
+
+    host.querySelectorAll(".tl-resize-handle").forEach(function (handle) {
+      handle.addEventListener("mousedown", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var it = filtered.find(function (x) { return x.id === handle.dataset.id; });
+        if (!it) return;
+        var edge = handle.dataset.edge; // "start" | "end"
+        var bar = handle.closest(".tl-bar");
+        var track = bar.parentElement;
+        var r = itemRange(it);
+        if (edge === "start" && !it.fechaVencimiento) {
+          showBanner("Esta actividad todavía no tiene fecha de término — edítala primero desde el formulario para poder mover su inicio arrastrando.");
+          return;
+        }
+        var origLeft = xFor(r.s), origRight = xFor(r.e);
+        var trackRect = track.getBoundingClientRect();
+        bar.classList.add("tl-dragging");
+        hideTooltip();
+        var moved = false;
+        function clamp(x) {
+          return edge === "start" ? Math.min(x, origRight - 6) : Math.max(x, origLeft + 6);
+        }
+        function onMove(ev2) {
+          moved = true;
+          var x = clamp(ev2.clientX - trackRect.left);
+          if (edge === "start") {
+            bar.style.left = x + "px";
+            bar.style.width = Math.max(6, origRight - x) + "px";
+          } else {
+            bar.style.width = Math.max(6, x - origLeft) + "px";
+          }
+        }
+        function onUp(ev2) {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          bar.classList.remove("tl-dragging");
+          if (!moved) return;
+          bar.dataset.justDragged = "1";
+          var x = clamp(ev2.clientX - trackRect.left);
+          var newDate = dateFor(x);
+          applyHitoResize(it, edge, newDate);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
     });
   }
 
@@ -1971,6 +2102,173 @@
     document.getElementById("tl-mostrar-responsable").checked = !!state.timelineView.mostrarResponsable;
     renderTimeline(items);
   }
+
+  /* ---------------- Línea de tiempo: "Comparar proyectos" ---------------- */
+  // Muestra, agrupado por área, solo la barra de resumen (inicio de la primera
+  // actividad → término de la última) de cada proyecto elegido, para poner
+  // por ejemplo La Cacho + Insurgentes + Vallarta uno junto al otro por área.
+  function updateTimelineModeVisibility() {
+    var compare = !!state.timelineView.compareMode;
+    document.getElementById("tl-modo-proyecto-wrap").style.display = compare ? "none" : "";
+    document.getElementById("tl-modo-comparar-wrap").style.display = compare ? "" : "none";
+    document.getElementById("tl-modo-proyecto").checked = !compare;
+    document.getElementById("tl-modo-comparar").checked = compare;
+    document.getElementById("tl-compare-panel").style.display = compare ? "" : "none";
+    if (compare) {
+      document.getElementById("tl-panel").style.display = "none";
+      document.getElementById("tl-empty-panel").style.display = "none";
+    }
+  }
+  function getSelectedCompareProyectos() {
+    return proyectosSorted().filter(function (p) { return !!state.timelineView.compareProyectos[p.id]; });
+  }
+  function renderTimelineCompareChecklist() {
+    var host = document.getElementById("tl-compare-checklist");
+    host.innerHTML = proyectosSorted().map(function (p) {
+      var checked = state.timelineView.compareProyectos[p.id] ? "checked" : "";
+      return '<label style="margin-right:14px;white-space:nowrap"><input type="checkbox" data-tl-compare="' + p.id + '" ' + checked + '> ' + escapeHtml(p.nombre) + '</label>';
+    }).join("");
+    host.querySelectorAll("input[data-tl-compare]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        state.timelineView.compareProyectos[cb.dataset.tlCompare] = cb.checked;
+        renderTimelineCompare();
+      });
+    });
+  }
+  function renderTimelineCompare() {
+    var host = document.getElementById("timeline-compare-inner");
+    var selected = getSelectedCompareProyectos();
+    if (!selected.length) {
+      host.innerHTML = '<div class="tl-empty">Selecciona al menos un proyecto para comparar.</div>';
+      return;
+    }
+    var AREA_ORDER = ["due_diligence", "diseno", "tramites", "comercial", "obra", "administracion", "escrituracion", "otro"];
+    var allAreas = { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true };
+    var spansByProyecto = {};
+    selected.forEach(function (p) {
+      var items = getTimelineItems({ proyectoId: p.id, areas: allAreas });
+      var byArea = {};
+      items.forEach(function (it) { var a = it.area || "otro"; (byArea[a] = byArea[a] || []).push(it); });
+      var spans = {};
+      Object.keys(byArea).forEach(function (a) { spans[a] = groupSpan(byArea[a]); });
+      spansByProyecto[p.id] = spans;
+    });
+    var areasConDatos = AREA_ORDER.filter(function (a) {
+      return selected.some(function (p) { return spansByProyecto[p.id][a]; });
+    });
+    if (!areasConDatos.length) {
+      host.innerHTML = '<div class="tl-empty">Los proyectos seleccionados todavía no tienen actividades con fecha para comparar.</div>';
+      return;
+    }
+
+    var gran = state.timelineView.granularidad || "trimestral";
+    var periodMonths = gran === "anual" ? 12 : gran === "trimestral" ? 3 : 1;
+    function periodStart(d) {
+      if (gran === "anual") return new Date(d.getFullYear(), 0, 1);
+      if (gran === "trimestral") return new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3, 1);
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    function periodKeyOf(d) { var s = periodStart(d); return s.getFullYear() + "-" + s.getMonth(); }
+    function periodDaysOf(d) {
+      var s = periodStart(d);
+      var e = new Date(s.getFullYear(), s.getMonth() + periodMonths, 1);
+      return Math.round((e - s) / MS_DAY);
+    }
+    function periodLabelOf(d) {
+      if (gran === "anual") return String(d.getFullYear());
+      if (gran === "trimestral") return "T" + (Math.floor(d.getMonth() / 3) + 1) + " " + String(d.getFullYear()).slice(2);
+      return d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" });
+    }
+    var activePeriodMap = {};
+    function markPeriods(s, e) {
+      if (!s) return;
+      e = e || s;
+      if (e < s) { var tmp = s; s = e; e = tmp; }
+      var cur = periodStart(s), end = periodStart(e);
+      var guard = 0;
+      while (cur <= end && guard < 1200) {
+        activePeriodMap[periodKeyOf(cur)] = new Date(cur);
+        cur.setMonth(cur.getMonth() + periodMonths);
+        guard++;
+      }
+    }
+    selected.forEach(function (p) {
+      Object.keys(spansByProyecto[p.id]).forEach(function (a) {
+        var sp = spansByProyecto[p.id][a];
+        if (sp) markPeriods(sp.start, sp.end);
+      });
+    });
+    markPeriods(todayMid, todayMid);
+    var activePeriods = Object.keys(activePeriodMap).map(function (k) { return activePeriodMap[k]; }).sort(function (a, b) { return a - b; });
+    var periodIndex = {};
+    activePeriods.forEach(function (m, i) { periodIndex[periodKeyOf(m)] = i; });
+    var LABEL_W = 230;
+    var zoom = state.timelineView.zoom || 1;
+    var BASE_UNIT_W = Math.max(40, Math.min(160, Math.round(1500 / Math.max(1, activePeriods.length))));
+    var UNIT_W = Math.round(BASE_UNIT_W * zoom);
+    var trackWidth = Math.max(UNIT_W, activePeriods.length * UNIT_W);
+    function xFor(date) {
+      if (!date) return 0;
+      var idx = periodIndex[periodKeyOf(date)];
+      if (idx === undefined) idx = date < activePeriods[0] ? 0 : activePeriods.length - 1;
+      var frac = (date - periodStart(date)) / (periodDaysOf(date) * MS_DAY);
+      return Math.round(idx * UNIT_W + frac * UNIT_W);
+    }
+    var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
+      activePeriods.map(function (m, i) {
+        return '<div class="tl-axis-tick" data-year="' + m.getFullYear() + '" style="left:' + (i * UNIT_W) + 'px"><span>' + periodLabelOf(m) + '</span></div>';
+      }).join("") + '</div>';
+
+    var ROW_H = 30;
+    var groupsHtml = areasConDatos.map(function (aKey) {
+      var rowsHtml = selected.map(function (p) {
+        var sp = spansByProyecto[p.id][aKey];
+        var barHtml, labelExtra = "";
+        if (sp) {
+          var left = xFor(sp.start), width = Math.max(6, xFor(sp.end) - left);
+          barHtml = '<div class="tl-bar-summary" style="left:' + left + 'px;width:' + width + 'px;top:' + (Math.round(ROW_H / 2) - 5) + 'px"></div>' +
+            '<span class="tl-summary-days" style="left:' + (left + width + 8) + 'px;top:' + (Math.round(ROW_H / 2)) + 'px">' + sp.days + ' día' + (sp.days === 1 ? "" : "s") + '</span>';
+        } else {
+          barHtml = "";
+          labelExtra = '<span class="tl-sub">Sin actividad en esta área</span>';
+        }
+        return '<div class="tl-row" style="width:' + (LABEL_W + trackWidth) + 'px;height:' + ROW_H + 'px">' +
+          '<div class="tl-row-label">' + escapeHtml(p.nombre) + labelExtra + '</div>' +
+          '<div class="tl-track" style="width:' + trackWidth + 'px">' +
+            '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
+            barHtml +
+          '</div>' +
+        '</div>';
+      }).join("");
+      return '<div class="tl-group" style="width:' + (LABEL_W + trackWidth) + 'px">' +
+        '<div class="tl-group-head"><h3>' + escapeHtml(AREA_LABELS[aKey] || "Otro") + '</h3></div>' +
+        rowsHtml +
+      '</div>';
+    }).join("");
+
+    host.innerHTML = axisHtml + groupsHtml;
+  }
+  document.getElementById("tl-modo-proyecto").addEventListener("change", function () {
+    state.timelineView.compareMode = false;
+    updateTimelineModeVisibility();
+    renderTimelineView();
+  });
+  document.getElementById("tl-modo-comparar").addEventListener("change", function () {
+    state.timelineView.compareMode = true;
+    updateTimelineModeVisibility();
+    renderTimelineCompareChecklist();
+    renderTimelineCompare();
+  });
+  document.getElementById("btn-tl-compare-todas").addEventListener("click", function () {
+    state.proyectos.forEach(function (p) { state.timelineView.compareProyectos[p.id] = true; });
+    renderTimelineCompareChecklist();
+    renderTimelineCompare();
+  });
+  document.getElementById("btn-tl-compare-ninguno").addEventListener("click", function () {
+    state.timelineView.compareProyectos = {};
+    renderTimelineCompareChecklist();
+    renderTimelineCompare();
+  });
 
   // Al abrir un proyecto (o al entrar a la pantalla), la primera vista debe
   // arrancar en el año en curso — no desde el inicio de todo el historial —
@@ -2076,7 +2374,13 @@
     populateHitoFiltroProyecto(state.hitoViewFilters.proyectoId);
     renderHitosView();
     populateTimelineProyectoSelect(state.timelineView.proyectoId);
-    renderTimelineView();
+    updateTimelineModeVisibility();
+    if (state.timelineView.compareMode) {
+      renderTimelineCompareChecklist();
+      renderTimelineCompare();
+    } else {
+      renderTimelineView();
+    }
     populateHistFiltroProyecto(state.historialFilters.proyectoId);
     renderHistorialView();
   }
@@ -2843,6 +3147,33 @@
       .catch(function (err) { showBanner(err.message || "No se pudo actualizar la línea de tiempo."); });
   }
 
+  // Arrastrar una manija en la línea de tiempo (alargar/acortar una actividad):
+  // usa el mismo endpoint que el formulario, así que la cascada automática de
+  // fechas dependientes y el historial de cambios se registran solos.
+  function applyHitoResize(it, edge, newDate) {
+    var h = state.hitos.find(function (x) { return x.id === it.rawId; });
+    if (!h) return;
+    var payload = {
+      proyectoId: h.proyectoId, nombre: h.nombre, area: h.area,
+      fechaInicio: h.fechaInicio || "", fechaVencimiento: h.fechaVencimiento || "",
+      estatus: h.estatus, responsable: h.responsable || "", notas: h.notas || "",
+      subtareas: h.subtareas || "",
+      dependeDe: h.dependeDe || "",
+      incluirLineaTiempo: h.incluirLineaTiempo !== false
+    };
+    if (edge === "start") payload.fechaInicio = isoDate(newDate);
+    else payload.fechaVencimiento = isoDate(newDate);
+    api("/api/hitos/" + h.id, { method: "PUT", body: JSON.stringify(payload) })
+      .then(function (result) {
+        return refreshAll().then(function () { return result; });
+      })
+      .then(function (result) {
+        var n = result && result.cascaded ? (result.cascaded.tramites || 0) + (result.cascaded.hitos || 0) : 0;
+        if (n > 0) showBanner("Se ajustaron automáticamente " + n + " actividad" + (n === 1 ? "" : "es") + " que dependían de esta.");
+      })
+      .catch(function (err) { showBanner(err.message || "No se pudo mover la fecha arrastrando esta barra."); });
+  }
+
   document.getElementById("hito-filtro-proyecto").addEventListener("change", function (e) {
     state.hitoViewFilters.proyectoId = e.target.value;
     renderHitosView();
@@ -3121,7 +3452,12 @@
     document.getElementById("nav-timeline").classList.toggle("active", name === "timeline");
     document.getElementById("nav-historial").classList.toggle("active", name === "historial");
     if (name === "historial") { populateHistFiltroProyecto(state.historialFilters.proyectoId); renderHistorialView(); }
-    if (name === "timeline") { populateTimelineProyectoSelect(state.timelineView.proyectoId); renderTimelineView(); scrollTimelineToCurrentYear(); }
+    if (name === "timeline") {
+      populateTimelineProyectoSelect(state.timelineView.proyectoId);
+      updateTimelineModeVisibility();
+      if (state.timelineView.compareMode) { renderTimelineCompareChecklist(); renderTimelineCompare(); }
+      else { renderTimelineView(); scrollTimelineToCurrentYear(); }
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   document.getElementById("nav-catalogos-toggle").addEventListener("click", function () {
@@ -3339,9 +3675,25 @@
     }).join("");
     if (currentId) el.value = currentId;
   }
+  function updatePlantProyectoBaseHint() {
+    var hint = document.getElementById("plant-proyecto-base-hint");
+    var proyectoId = document.getElementById("plant-proyecto-base").value;
+    if (!proyectoId) { hint.textContent = ""; return; }
+    var nTramites = state.tramites.filter(function (t) { return t.proyectoId === proyectoId; }).length;
+    var nHitos = state.hitos.filter(function (h) { return h.proyectoId === proyectoId; }).length;
+    if (nTramites === 0 && nHitos === 0) {
+      hint.textContent = "⚠ Este proyecto todavía no tiene trámites ni actividades capturados — la plantilla saldría vacía.";
+      hint.style.color = "var(--critical)";
+    } else {
+      hint.textContent = "Se copiarán " + nTramites + " trámite(s) y " + nHitos + " actividad(es) de este proyecto.";
+      hint.style.color = "";
+    }
+  }
+  document.getElementById("plant-proyecto-base").addEventListener("change", updatePlantProyectoBaseHint);
   function openPlantillas() {
     document.getElementById("plant-nombre").value = "";
     fillProyectoSelectGenerico("plant-proyecto-base");
+    updatePlantProyectoBaseHint();
     document.getElementById("plant-crear-status").style.visibility = "hidden";
     state.viewingPlantillaId = null;
     document.getElementById("plantillas-list-view").style.display = "";
@@ -3451,12 +3803,20 @@
       status.className = "status-msg err";
       return;
     }
+    var nTramitesBase = state.tramites.filter(function (t) { return t.proyectoId === proyectoId; }).length;
+    var nHitosBase = state.hitos.filter(function (h) { return h.proyectoId === proyectoId; }).length;
     api("/api/plantillas/desde-proyecto", { method: "POST", body: JSON.stringify({ nombre: nombre, proyectoId: proyectoId }) })
       .then(function () {
-        status.textContent = "Plantilla creada.";
-        status.className = "status-msg ok";
+        if (nTramitesBase === 0 && nHitosBase === 0) {
+          status.textContent = "La plantilla se creó vacía porque ese proyecto todavía no tiene trámites ni actividades — elige otro proyecto base, o agrega renglones a mano en \"Ver/editar\".";
+          status.className = "status-msg err";
+        } else {
+          status.textContent = "Plantilla creada con " + nTramitesBase + " trámite(s) y " + nHitosBase + " actividad(es).";
+          status.className = "status-msg ok";
+        }
         document.getElementById("plant-nombre").value = "";
         document.getElementById("plant-proyecto-base").value = "";
+        updatePlantProyectoBaseHint();
         return refreshAll();
       })
       .then(function () { renderPlantillasList(); })
