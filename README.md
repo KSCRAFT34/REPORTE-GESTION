@@ -32,16 +32,14 @@ información, y queda protegida con una contraseña.
   fecha por fecha a mano cuando algo se atrasa.
 - **Historial de fechas**: reporte aparte (menú izquierdo) que registra cada vez que
   se mueve la fecha de inicio, vencimiento o terminación de un trámite u otra área —
-  a mano o por el recorrido automático explicado arriba. Muestra cuántas veces se ha
-  movido cada actividad, y el detalle de cada cambio (fecha anterior → nueva, si fue
-  manual o automático, y cuándo). Para el resumen ("fecha original" vs. "fecha
-  actual" y la diferencia total), en **trámites** se usa la **fecha de terminación**
-  (antes decía "conclusión real"; ese es el dato que de verdad importa para saber si
-  algo se atrasó o adelantó, no el vencimiento que solo es el recordatorio de
-  renovación); en **áreas** (que no tienen fecha de terminación por separado) se
-  sigue usando el vencimiento de siempre. La línea de tiempo principal siempre
-  muestra solo la fecha vigente; este historial es para consultar aparte qué tanto
-  se ha movido algo.
+  a mano o por el recorrido automático explicado arriba. El resumen de la tabla
+  ("fecha original" vs. "fecha actual" y la diferencia total) se basa en la **fecha
+  de inicio**, para ver de un vistazo cuánto se retrasó o adelantó el comienzo de
+  cada actividad. El botón "Ver detalle" es para cuando quieras ver todos los
+  cambios acumulados de esa actividad (inicio, vencimiento y, en trámites,
+  terminación — fecha anterior → nueva, si fue manual o automático, y cuándo). La
+  línea de tiempo principal siempre muestra solo la fecha vigente; este historial es
+  para consultar aparte qué tanto se ha movido algo.
 - **Líneas de tiempo**: pantalla propia en el menú izquierdo, separada del
   dashboard (con tanta información, mezclado con la tabla no se leía bien).
   Eliges un proyecto y ves su cronograma completo — trámites y áreas
@@ -51,9 +49,14 @@ información, y queda protegida con una contraseña.
   filtros de trámites viven en "Áreas" (ver arriba); la parte visual de Gantt
   vive solo aquí.
   Tiene un selector de **Vista** (Mensual, Trimestral o Anual) para comprimir
-  proyectos largos y que se puedan leer de un vistazo, y controles de **Zoom**
-  (acercar, alejar, restablecer) para ajustar qué tan ancha se ve la línea de
-  tiempo — útil cuando aun así se necesita ver el detalle día a día de un tramo.
+  proyectos largos y que se puedan leer de un vistazo — por default abre en
+  **Trimestral** — y controles de **Zoom** (acercar, alejar, restablecer) para
+  ajustar qué tan ancha se ve la línea de tiempo — útil cuando aun así se
+  necesita ver el detalle día a día de un tramo.
+  Al abrir un proyecto (o al entrar a la pantalla), la vista arranca mostrando
+  el **año en curso**, no desde el inicio de todo el historial; para consultar
+  años anteriores basta con recorrer el scroll horizontal hacia la izquierda
+  con el cursor.
   Junto al filtro de áreas hay una casilla de **Responsable**: viene destildada
   por default para que la línea de tiempo se vea compacta (una fila más
   angosta por actividad); al activarla, cada fila crece un poco y muestra

@@ -347,7 +347,7 @@
         <span class="area-filter-label">Vista:</span>
         <select id="tl-vista" style="max-width:140px">
           <option value="mensual">Mensual</option>
-          <option value="trimestral">Trimestral</option>
+          <option value="trimestral" selected>Trimestral</option>
           <option value="anual">Anual</option>
         </select>
         <span class="area-filter-label" style="margin-left:18px">Zoom:</span>
@@ -1168,7 +1168,7 @@
     deletingHitoId: null,
     hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
-    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "mensual", zoom: 1, mostrarResponsable: false }
+    timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false }
   };
 
   var todayMid = (function () { var d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
@@ -1700,7 +1700,7 @@
 
     var axisHtml = '<div class="tl-axis" style="margin-left:' + LABEL_W + 'px;width:' + trackWidth + 'px;position:relative">' +
       activePeriods.map(function (m, i) {
-        return '<div class="tl-axis-tick" style="left:' + (i * UNIT_W) + 'px"><span>' +
+        return '<div class="tl-axis-tick" data-year="' + m.getFullYear() + '" style="left:' + (i * UNIT_W) + 'px"><span>' +
           periodLabelOf(m) + '</span></div>';
       }).join("") + '</div>';
 
@@ -1814,15 +1814,37 @@
         " al " + maxF.toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" });
     }
     document.getElementById("tl-hint").textContent = hint;
-    document.getElementById("tl-vista").value = state.timelineView.granularidad || "mensual";
+    document.getElementById("tl-vista").value = state.timelineView.granularidad || "trimestral";
     document.getElementById("tl-zoom-pct").textContent = Math.round((state.timelineView.zoom || 1) * 100) + "%";
     document.getElementById("tl-mostrar-responsable").checked = !!state.timelineView.mostrarResponsable;
     renderTimeline(items);
   }
 
+  // Al abrir un proyecto (o al entrar a la pantalla), la primera vista debe
+  // arrancar en el año en curso — no desde el inicio de todo el historial —
+  // dejando los años anteriores accesibles recorriendo el scroll hacia la
+  // izquierda con el cursor. Los ajustes posteriores (filtros, zoom, vista)
+  // no deben "brincar" de vuelta al año en curso, así que esto solo se llama
+  // al seleccionar un proyecto o al entrar a la pantalla, no en cada render.
+  function scrollTimelineToCurrentYear() {
+    var scrollHost = document.getElementById("timeline-scroll");
+    if (!scrollHost) return;
+    var ticks = scrollHost.querySelectorAll(".tl-axis-tick");
+    if (!ticks.length) { scrollHost.scrollLeft = 0; return; }
+    var curYear = new Date().getFullYear();
+    var target = null;
+    for (var i = 0; i < ticks.length; i++) {
+      if (Number(ticks[i].dataset.year) >= curYear) { target = ticks[i]; break; }
+    }
+    if (!target) target = ticks[ticks.length - 1]; // todo es pasado: mostrar lo más reciente
+    var left = parseFloat(target.style.left) || 0;
+    scrollHost.scrollLeft = Math.max(0, left - 8);
+  }
+
   document.getElementById("tl-select-proyecto").addEventListener("change", function (e) {
     state.timelineView.proyectoId = e.target.value;
     renderTimelineView();
+    scrollTimelineToCurrentYear();
   });
   document.querySelectorAll("#area-filter input[data-area]").forEach(function (cb) {
     cb.addEventListener("change", function () {
@@ -2846,12 +2868,11 @@
     return Object.keys(byItem).map(function (key) {
       var g = byItem[key];
       // Orden cronológico (los registros vienen del server en DESC, aquí los reordenamos ASC para calcular "original -> actual").
-      // Para trámites el resumen se basa en la fecha de TERMINACIÓN (la real, cuando
-      // se concluye) y no en el vencimiento (que es solo el recordatorio de renovación).
-      // Las áreas (hitos) no tienen fecha de terminación separada, así que para esas
-      // se sigue usando el vencimiento de siempre.
-      var campoResumen = g.tipo === "tramite" ? "terminacion" : "vencimiento";
-      var vencEntradas = g.entradas.filter(function (e) { return e.campo === campoResumen; }).slice().sort(function (a, b) { return new Date(a.fecha) - new Date(b.fecha); });
+      // El resumen (fecha original / fecha actual / diferencia) se basa en la fecha de
+      // INICIO, para ver cuánto se retrasó o adelantó el comienzo de la actividad. El
+      // detalle completo ("Ver detalle") sigue mostrando todos los cambios acumulados
+      // (inicio, vencimiento y, en trámites, terminación).
+      var vencEntradas = g.entradas.filter(function (e) { return e.campo === "inicio"; }).slice().sort(function (a, b) { return new Date(a.fecha) - new Date(b.fecha); });
       var fechaOriginal = vencEntradas.length ? vencEntradas[0].fechaAnterior : null;
       var fechaActual = vencEntradas.length ? vencEntradas[vencEntradas.length - 1].fechaNueva : null;
       var diffDias = null;
@@ -2937,7 +2958,7 @@
     document.getElementById("nav-timeline").classList.toggle("active", name === "timeline");
     document.getElementById("nav-historial").classList.toggle("active", name === "historial");
     if (name === "historial") { populateHistFiltroProyecto(state.historialFilters.proyectoId); renderHistorialView(); }
-    if (name === "timeline") { populateTimelineProyectoSelect(state.timelineView.proyectoId); renderTimelineView(); }
+    if (name === "timeline") { populateTimelineProyectoSelect(state.timelineView.proyectoId); renderTimelineView(); scrollTimelineToCurrentYear(); }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   document.getElementById("nav-catalogos-toggle").addEventListener("click", function () {
