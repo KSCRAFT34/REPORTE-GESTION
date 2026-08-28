@@ -19,13 +19,17 @@ información, y queda protegida con una contraseña.
   escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
   actividad igual que un trámite — con fecha de inicio y término, responsable, y su
   propio color por área — en vez de una fecha suelta. Se puede filtrar por área
-  y por estado (Vigente, Por vencer, Urgente, Vencido, Completado), con
+  y por estado (Vigente, No iniciado, Por vencer, Urgente, Vencido, Completado), con
   botones "Todas"/"Ninguna" en cada filtro para no tener que ir marcando o
   desmarcando uno por uno. En esta misma pantalla, debajo de "Detalle de áreas",
   vive también el recuadro de **Trámites** (con sus propios números arriba, sus
   filtros y el botón "+ Nuevo trámite") — para capturar y consultar trámites
   reales sin salir de Áreas. El Dashboard ya no muestra trámites; ahí solo se
-  quedan Proyectos y Control de pagos.
+  quedan Proyectos y Control de pagos. El estado "No iniciado" se muestra en un
+  color morado propio (antes se confundía con "Vigente" en verde); esto solo
+  aplica cuando todavía queda tiempo — si algo no ha iniciado y ya se pasó su
+  fecha de vencimiento, se sigue viendo en rojo como "Vencido" para no perder
+  esa alerta.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se

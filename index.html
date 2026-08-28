@@ -180,6 +180,7 @@
     <div class="area-filter" style="border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:16px">
       <span class="area-filter-label">Estado:</span>
       <label><input type="checkbox" checked data-hito-estado="vigente"> Vigente</label>
+      <label><input type="checkbox" checked data-hito-estado="noIniciado"> No iniciado</label>
       <label><input type="checkbox" checked data-hito-estado="porVencer"> Por vencer</label>
       <label><input type="checkbox" checked data-hito-estado="urgente"> Urgente</label>
       <label><input type="checkbox" checked data-hito-estado="vencido"> Vencido</label>
@@ -269,6 +270,7 @@
           <select id="f-estado">
             <option value="">Todos</option>
             <option value="vigente">Vigente</option>
+            <option value="noIniciado">No iniciado</option>
             <option value="porVencer">Por vencer (≤30 días)</option>
             <option value="urgente">Urgente (≤15 días)</option>
             <option value="vencido">Vencido</option>
@@ -376,6 +378,7 @@
       </div>
       <div class="legend">
         <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
+        <span class="legend-item"><span class="dot" style="background:var(--pending)"></span>No iniciado</span>
         <span class="legend-item"><span class="dot" style="background:var(--warning-dot)"></span>Por vencer (≤30 días)</span>
         <span class="legend-item"><span class="dot" style="background:var(--serious)"></span>Urgente (≤15 días)</span>
         <span class="legend-item"><span class="dot" style="background:var(--critical)"></span>Vencido</span>
@@ -1169,7 +1172,7 @@
     deletingProyectoId: null,
     editingHitoId: null,
     deletingHitoId: null,
-    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, porVencer: true, urgente: true, vencido: true, completado: true } },
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, porVencer: true, urgente: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
     timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false }
   };
@@ -1215,13 +1218,14 @@
 
   function computeState(item) {
     if (item.estatus === "completado") return "completado";
+    var noIniciado = item.estatus === "no_iniciado";
     var due = parseDate(item.fechaVencimiento);
-    if (!due) return "vigente";
+    if (!due) return noIniciado ? "noIniciado" : "vigente";
     var diff = Math.round((due - todayMid) / MS_DAY);
     if (diff < 0) return "vencido";
     if (diff <= 15) return "urgente";
     if (diff <= 30) return "porVencer";
-    return "vigente";
+    return noIniciado ? "noIniciado" : "vigente";
   }
   function daysLabel(item) {
     var due = parseDate(item.fechaVencimiento);
@@ -1231,7 +1235,7 @@
     if (diff > 0) return "Vence en " + diff + " día" + (diff === 1 ? "" : "s");
     return "Vencido hace " + Math.abs(diff) + " día" + (Math.abs(diff) === 1 ? "" : "s");
   }
-  var STATE_LABEL = { vigente: "Vigente", porVencer: "Por vencer", urgente: "Urgente", vencido: "Vencido", completado: "Completado" };
+  var STATE_LABEL = { vigente: "Vigente", noIniciado: "No iniciado", porVencer: "Por vencer", urgente: "Urgente", vencido: "Vencido", completado: "Completado" };
   var ESTATUS_LABEL = { no_iniciado: "No iniciado", en_proceso: "En proceso", completado: "Completado" };
 
   /* ---------------- Networking ---------------- */

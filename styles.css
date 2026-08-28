@@ -25,6 +25,8 @@
     --critical-tint: rgba(208,59,59,0.12);
     --info: #7c5cbf;
     --info-tint: rgba(124,92,191,0.14);
+    --pending: #7e3f9d;
+    --pending-tint: rgba(126,63,157,0.14);
     --neutral-tint: rgba(93,88,80,0.12);
     --shadow-card: 0 1px 2px rgba(28,25,20,0.06);
     --shadow-pop: 0 12px 32px rgba(28,25,20,0.16), 0 2px 8px rgba(28,25,20,0.08);
@@ -62,6 +64,8 @@
       --critical-tint: rgba(239,115,115,0.18);
       --info: #b39ddb;
       --info-tint: rgba(179,157,219,0.18);
+      --pending: #d199e8;
+      --pending-tint: rgba(209,153,232,0.20);
       --neutral-tint: rgba(199,193,180,0.14);
       --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
       --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -94,6 +98,8 @@
     --critical-tint: rgba(239,115,115,0.18);
     --info: #b39ddb;
     --info-tint: rgba(179,157,219,0.18);
+    --pending: #d199e8;
+    --pending-tint: rgba(209,153,232,0.20);
     --neutral-tint: rgba(199,193,180,0.14);
     --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
     --shadow-pop: 0 16px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
@@ -311,6 +317,7 @@
     min-width: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.06) inset;
   }
   .tl-bar.st-vigente { background: var(--good); }
+  .tl-bar.st-noIniciado { background: var(--pending); }
   .tl-bar.st-porVencer { background: var(--warning-dot); }
   .tl-bar.st-urgente { background: var(--serious); }
   .tl-bar.st-vencido { background: var(--critical); }
@@ -384,11 +391,13 @@
     font-size: 11.5px; font-weight: 500; white-space: nowrap;
   }
   .pill.st-vigente { background: var(--good-tint); }
+  .pill.st-noIniciado { background: var(--pending-tint); }
   .pill.st-porVencer { background: var(--warning-tint); }
   .pill.st-urgente { background: var(--serious-tint); }
   .pill.st-vencido { background: var(--critical-tint); }
   .pill.st-completado { background: var(--neutral-tint); }
   .pill .dot.st-vigente { background: var(--good); }
+  .pill .dot.st-noIniciado { background: var(--pending); }
   .pill .dot.st-porVencer { background: var(--warning-dot); }
   .pill .dot.st-urgente { background: var(--serious); }
   .pill .dot.st-vencido { background: var(--critical); }
