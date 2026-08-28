@@ -1352,7 +1352,11 @@ app.delete("/api/plantilla-hitos/:id", requireEditor, async (req, res) => {
 
 // Aplica una plantilla a un proyecto ya existente: crea un trámite/actividad
 // real por cada renglón de la plantilla, con estatus "no iniciado" y sin
-// fechas ni costos (eso se captura después, propio de cada proyecto).
+// vencimiento ni costos (eso se captura después, propio de cada proyecto).
+// La fecha de inicio se deja en "hoy" (no en blanco): sin ninguna fecha, la
+// Línea de tiempo no tiene dónde dibujar la barra y el trámite/actividad
+// simplemente no aparece ahí — con "hoy" como punto de partida se ve de
+// inmediato y solo falta ajustarlo a la fecha real de cada proyecto.
 app.post("/api/plantillas/:id/aplicar", requireEditor, async (req, res) => {
   const proyectoId = String((req.body && req.body.proyectoId) || "").trim();
   if (!proyectoId) return res.status(400).json({ error: "Elige a qué proyecto aplicar la plantilla." });
@@ -1372,15 +1376,15 @@ app.post("/api/plantillas/:id/aplicar", requireEditor, async (req, res) => {
     }
     for (const t of tramitesPlantilla.rows) {
       await client.query(
-        `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus, tiempo_unidad, incluir_linea_tiempo)
-         VALUES ($1,$2,$3,NULL,0,0,0,'no_iniciado','dias',true)`,
+        `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus, fecha_inicio, tiempo_unidad, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,NULL,0,0,0,'no_iniciado',CURRENT_DATE,'dias',true)`,
         [crypto.randomUUID(), proyectoId, t.nombre]
       );
     }
     for (const h of hitosPlantilla.rows) {
       await client.query(
-        `INSERT INTO hitos (id, proyecto_id, nombre, area, estatus, incluir_linea_tiempo)
-         VALUES ($1,$2,$3,$4,'no_iniciado',true)`,
+        `INSERT INTO hitos (id, proyecto_id, nombre, area, estatus, fecha_inicio, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,$4,'no_iniciado',CURRENT_DATE,true)`,
         [crypto.randomUUID(), proyectoId, h.nombre, h.area]
       );
     }

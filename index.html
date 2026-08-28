@@ -1139,7 +1139,7 @@
 
       <div class="requires-edit">
         <div class="form-section-label">Aplicar esta plantilla a un proyecto</div>
-        <p style="margin:0 0 10px;color:var(--text-secondary);font-size:12.5px">Se crearán todos estos trámites y actividades en el proyecto que elijas, como "No iniciado" y sin fechas ni costos — solo te faltará capturar eso en cada uno.</p>
+        <p style="margin:0 0 10px;color:var(--text-secondary);font-size:12.5px">Se crearán todos estos trámites y actividades en el proyecto que elijas, como "No iniciado", con fecha de inicio de hoy (para que se vean de inmediato en la Línea de tiempo) y sin vencimiento ni costos — solo te faltará ajustar esas fechas y capturar los costos en cada uno.</p>
         <div class="form-grid" style="margin-bottom:6px">
           <div class="field">
             <label for="plant-aplicar-proyecto">Proyecto destino</label>
@@ -1741,9 +1741,14 @@
       if (!h.fechaVencimiento && !h.fechaInicio) return; // sin fecha: no se puede dibujar en la línea de tiempo
       if (h.proyectoId !== proyectoId) return;
       items.push({
+        // Ojo: NO se rellena fechaVencimiento con fechaInicio (ni viceversa) aquí —
+        // itemRange() ya sabe resolver cuál usar para dibujar la barra cuando falta
+        // una de las dos. Si aquí se "inventa" una fecha de vencimiento igual a la
+        // de inicio, computeState() la toma como "vence hoy" y el color de la barra
+        // ya no coincide con el de la tabla de Áreas (que sí ve el campo real vacío).
         id: "h:" + h.id, rawId: h.id, kind: "hito", area: h.area,
         nombre: h.nombre, proyectoId: h.proyectoId,
-        fechaInicio: h.fechaInicio || h.fechaVencimiento, fechaVencimiento: h.fechaVencimiento || h.fechaInicio,
+        fechaInicio: h.fechaInicio, fechaVencimiento: h.fechaVencimiento,
         estatus: h.estatus, notas: h.notas, responsable: h.responsable, dependeDe: h.dependeDe || null, subtareas: h.subtareas || ""
       });
     });

@@ -110,9 +110,11 @@ información, y queda protegida con una contraseña.
     Insurgentes 320, "Plantilla Tijuana" a partir de FLX La Cacho); dentro de
     cada plantilla puedes agregar o quitar renglones sueltos y renombrarla.
     El botón "Aplicar plantilla" crea todos esos trámites y actividades en el
-    proyecto que elijas, ya como "No iniciado" — solo falta capturarles la
-    fecha real y el costo en cada proyecto. Aplicar una plantilla no modifica
-    en nada el proyecto del que se creó.
+    proyecto que elijas, ya como "No iniciado" y con fecha de inicio de hoy
+    (para que se vean de inmediato en la Línea de tiempo, en su color morado
+    de "No iniciado"), sin vencimiento ni costos — solo falta ajustar esa
+    fecha y capturar el costo real en cada uno. Aplicar una plantilla no
+    modifica en nada el proyecto del que se creó.
 - Base de datos PostgreSQL (la crea Render automáticamente).
 - Exportar/Importar en JSON como respaldo manual.
 
