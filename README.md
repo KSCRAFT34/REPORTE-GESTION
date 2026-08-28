@@ -103,6 +103,16 @@ información, y queda protegida con una contraseña.
     que tenían al momento de capturarlas).
   - **Proveedores**: tus gestores, DRO, etc., con nombre, tipo, ciudad, correo,
     teléfono y cuenta bancaria.
+  - **Plantillas**: checklists reutilizables de trámites y actividades (solo el
+    nombre y, para actividades, su área — sin fechas, costos ni historial) para
+    armar de un jalón un proyecto nuevo que se parece a uno ya existente. Se
+    crean a partir de un proyecto real (p. ej. "Plantilla CDMX" a partir de
+    Insurgentes 320, "Plantilla Tijuana" a partir de FLX La Cacho); dentro de
+    cada plantilla puedes agregar o quitar renglones sueltos y renombrarla.
+    El botón "Aplicar plantilla" crea todos esos trámites y actividades en el
+    proyecto que elijas, ya como "No iniciado" — solo falta capturarles la
+    fecha real y el costo en cada proyecto. Aplicar una plantilla no modifica
+    en nada el proyecto del que se creó.
 - Base de datos PostgreSQL (la crea Render automáticamente).
 - Exportar/Importar en JSON como respaldo manual.
 

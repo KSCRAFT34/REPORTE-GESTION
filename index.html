@@ -39,6 +39,7 @@
       <!-- catálogo de trámites renombrado en pantalla a "Actividad" por petición explícita -->
       <button type="button" class="sidenav-subitem" id="cat-nav-tramites">Actividad</button>
       <button type="button" class="sidenav-subitem" id="cat-nav-proveedores">Proveedores</button>
+      <button type="button" class="sidenav-subitem" id="cat-nav-plantillas">Plantillas</button>
     </div>
     <button type="button" class="sidenav-item" id="nav-accesos" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -1040,6 +1041,128 @@
   </div>
 </dialog>
 
+<!-- Catálogo: Plantillas (checklists reutilizables de trámites/actividades) -->
+<dialog id="dlg-plantillas" data-size="lg">
+  <div class="dlg-head">
+    <h2 id="dlg-plantillas-title">Plantillas</h2>
+    <button type="button" class="icon-btn" id="dlg-plantillas-close" aria-label="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dlg-body">
+
+    <div id="plantillas-list-view">
+      <p style="margin:0 0 12px;color:var(--text-secondary);font-size:12.5px">Una plantilla es una lista de trámites y actividades (solo el nombre y el área, sin fechas ni costos) que tomas de un proyecto ya existente, para usarla después y armar un proyecto nuevo parecido sin capturar todo desde cero.</p>
+      <div class="requires-edit">
+        <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Crear plantilla a partir de un proyecto</div>
+        <div class="form-grid" style="margin-bottom:6px">
+          <div class="field">
+            <label for="plant-nombre">Nombre de la plantilla <span class="req">*</span></label>
+            <input type="text" id="plant-nombre" placeholder="p. ej. Plantilla CDMX">
+          </div>
+          <div class="field">
+            <label for="plant-proyecto-base">Proyecto base <span class="req">*</span></label>
+            <select id="plant-proyecto-base"><option value="">Selecciona un proyecto…</option></select>
+          </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:space-between;align-items:center;padding:0 0 16px;border-top:none">
+          <div class="status-msg" id="plant-crear-status" style="visibility:hidden;margin:0"></div>
+          <button type="button" class="btn btn-primary" id="btn-plant-crear">Crear plantilla</button>
+        </div>
+      </div>
+
+      <div class="form-section-label">Plantillas guardadas</div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Nombre</th><th>Trámites</th><th>Actividades</th><th></th></tr>
+          </thead>
+          <tbody id="plantillas-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="plantillas-empty" style="display:none">
+        <div>Aún no hay plantillas. Créala arriba a partir de un proyecto ya existente.</div>
+      </div>
+    </div>
+
+    <div id="plantilla-detail-view" style="display:none">
+      <button type="button" class="link-btn" id="btn-plantilla-volver" style="margin-bottom:12px">‹ Volver a Plantillas</button>
+
+      <div class="form-grid requires-edit" style="margin-bottom:14px">
+        <div class="field span-2">
+          <label for="plant-detail-nombre">Nombre de la plantilla</label>
+          <input type="text" id="plant-detail-nombre">
+        </div>
+        <div class="field" style="align-self:end">
+          <button type="button" class="btn" id="btn-plant-guardar-nombre">Guardar nombre</button>
+        </div>
+      </div>
+
+      <div class="form-section-label" style="border-top:none;padding-top:0;margin-top:0">Trámites de la plantilla</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Nombre</th><th></th></tr></thead>
+          <tbody id="plant-detail-tramites-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="plant-detail-tramites-empty" style="display:none">
+        <div>Esta plantilla no tiene trámites.</div>
+      </div>
+      <div class="requires-edit" style="display:flex;gap:8px;margin:10px 0 20px">
+        <input type="text" id="plant-add-tramite-nombre" placeholder="Agregar trámite a la plantilla…" style="flex:1">
+        <button type="button" class="btn" id="btn-plant-add-tramite">Agregar</button>
+      </div>
+
+      <div class="form-section-label">Actividades de la plantilla (Áreas)</div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Nombre</th><th>Área</th><th></th></tr></thead>
+          <tbody id="plant-detail-hitos-body"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="plant-detail-hitos-empty" style="display:none">
+        <div>Esta plantilla no tiene actividades.</div>
+      </div>
+      <div class="requires-edit" style="display:flex;gap:8px;margin:10px 0 20px;flex-wrap:wrap">
+        <input type="text" id="plant-add-hito-nombre" placeholder="Agregar actividad a la plantilla…" style="flex:1;min-width:200px">
+        <select id="plant-add-hito-area">
+          <option value="comercial">Comercial</option>
+          <option value="obra">Obra</option>
+          <option value="diseno">Diseño</option>
+          <option value="administracion">Administración</option>
+          <option value="due_diligence">Due diligence</option>
+          <option value="escrituracion">Escrituración</option>
+          <option value="otro">Otro</option>
+        </select>
+        <button type="button" class="btn" id="btn-plant-add-hito">Agregar</button>
+      </div>
+
+      <div class="requires-edit">
+        <div class="form-section-label">Aplicar esta plantilla a un proyecto</div>
+        <p style="margin:0 0 10px;color:var(--text-secondary);font-size:12.5px">Se crearán todos estos trámites y actividades en el proyecto que elijas, como "No iniciado" y sin fechas ni costos — solo te faltará capturar eso en cada uno.</p>
+        <div class="form-grid" style="margin-bottom:6px">
+          <div class="field">
+            <label for="plant-aplicar-proyecto">Proyecto destino</label>
+            <select id="plant-aplicar-proyecto"><option value="">Selecciona un proyecto…</option></select>
+          </div>
+          <div class="field" style="align-self:end">
+            <button type="button" class="btn btn-primary" id="btn-plant-aplicar">Aplicar plantilla</button>
+          </div>
+        </div>
+        <div class="status-msg" id="plant-aplicar-status" style="visibility:hidden"></div>
+      </div>
+
+      <div class="requires-edit" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+        <button type="button" class="btn" id="btn-plant-eliminar" style="color:var(--critical);border-color:var(--critical)">Eliminar esta plantilla</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="dlg-foot">
+    <button type="button" class="btn" id="dlg-plantillas-done">Cerrar</button>
+  </div>
+</dialog>
+
 <!-- Accesos: contraseñas de edición, solo lectura o por área -->
 <dialog id="dlg-accesos" data-size="lg">
   <div class="dlg-head">
@@ -1159,6 +1282,10 @@
     editingCatalogoTramiteId: null,
     proveedores: [],
     historialFechas: [],
+    plantillas: [],
+    plantillaTramites: [],
+    plantillaHitos: [],
+    viewingPlantillaId: null,
     accesos: [],
     editingAccesoId: null,
     deletingAccesoId: null,
@@ -1268,6 +1395,9 @@
       state.catalogoTramites = data.catalogoTramites || [];
       state.proveedores = data.proveedores || [];
       state.historialFechas = data.historialFechas || [];
+      state.plantillas = data.plantillas || [];
+      state.plantillaTramites = data.plantillaTramites || [];
+      state.plantillaHitos = data.plantillaHitos || [];
       hideBanner();
       renderAll();
     }).catch(function (err) {
@@ -3022,6 +3152,7 @@
   document.getElementById("cat-nav-proyectos").addEventListener("click", function () { openProyectoForm(null); });
   document.getElementById("cat-nav-tramites").addEventListener("click", function () { openCatalogoTramites(); });
   document.getElementById("cat-nav-proveedores").addEventListener("click", function () { openProveedores(); });
+  document.getElementById("cat-nav-plantillas").addEventListener("click", function () { openPlantillas(); });
   document.getElementById("nav-accesos").addEventListener("click", function () { openAccesos(); });
 
   /* ---------------- Catálogo de trámites (lista maestra) ---------------- */
@@ -3191,6 +3322,206 @@
       })
       .then(function () { renderProveedoresTable(); })
       .catch(function (err) { status.textContent = err.message || "No se pudo guardar."; status.className = "status-msg err"; });
+  });
+
+  /* ---------------- Plantillas (checklists reutilizables de trámites/actividades) ---------------- */
+  var dlgPlantillas = document.getElementById("dlg-plantillas");
+  function fillProyectoSelectGenerico(selId, currentId) {
+    var el = document.getElementById(selId);
+    var sorted = proyectosSorted();
+    el.innerHTML = '<option value="">Selecciona un proyecto…</option>' + sorted.map(function (p) {
+      return '<option value="' + p.id + '">' + escapeHtml(p.nombre) + ' — ' + escapeHtml(p.ciudad) + '</option>';
+    }).join("");
+    if (currentId) el.value = currentId;
+  }
+  function openPlantillas() {
+    document.getElementById("plant-nombre").value = "";
+    fillProyectoSelectGenerico("plant-proyecto-base");
+    document.getElementById("plant-crear-status").style.visibility = "hidden";
+    state.viewingPlantillaId = null;
+    document.getElementById("plantillas-list-view").style.display = "";
+    document.getElementById("plantilla-detail-view").style.display = "none";
+    renderPlantillasList();
+    dlgPlantillas.showModal();
+  }
+  function renderPlantillasList() {
+    var rows = state.plantillas.slice().sort(function (a, b) { return a.nombre.localeCompare(b.nombre, "es"); });
+    var tbody = document.getElementById("plantillas-body");
+    document.getElementById("plantillas-empty").style.display = rows.length ? "none" : "block";
+    tbody.innerHTML = rows.map(function (pl) {
+      var nTramites = state.plantillaTramites.filter(function (t) { return t.plantillaId === pl.id; }).length;
+      var nHitos = state.plantillaHitos.filter(function (h) { return h.plantillaId === pl.id; }).length;
+      return '<tr>' +
+        '<td>' + escapeHtml(pl.nombre) + '</td>' +
+        '<td>' + nTramites + '</td>' +
+        '<td>' + nHitos + '</td>' +
+        '<td><div class="row-actions">' +
+          '<button type="button" class="btn ver-plant-btn" data-id="' + pl.id + '">Ver / editar</button>' +
+          '<button class="icon-btn danger del-plant-btn requires-edit" data-id="' + pl.id + '" aria-label="Eliminar">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>' +
+          '</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join("");
+    tbody.querySelectorAll(".ver-plant-btn").forEach(function (b) {
+      b.addEventListener("click", function () { openPlantillaDetail(b.dataset.id); });
+    });
+    tbody.querySelectorAll(".del-plant-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/plantillas/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderPlantillasList(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar la plantilla."); });
+      });
+    });
+  }
+  function openPlantillaDetail(id) {
+    state.viewingPlantillaId = id;
+    document.getElementById("plantillas-list-view").style.display = "none";
+    document.getElementById("plantilla-detail-view").style.display = "";
+    document.getElementById("plant-aplicar-status").style.visibility = "hidden";
+    fillProyectoSelectGenerico("plant-aplicar-proyecto");
+    renderPlantillaDetail();
+  }
+  function renderPlantillaDetail() {
+    var pl = state.plantillas.find(function (x) { return x.id === state.viewingPlantillaId; });
+    if (!pl) { backToPlantillasList(); return; }
+    document.getElementById("dlg-plantillas-title").textContent = "Plantilla: " + pl.nombre;
+    document.getElementById("plant-detail-nombre").value = pl.nombre;
+
+    var tramites = state.plantillaTramites.filter(function (t) { return t.plantillaId === pl.id; });
+    var tbodyT = document.getElementById("plant-detail-tramites-body");
+    document.getElementById("plant-detail-tramites-empty").style.display = tramites.length ? "none" : "block";
+    tbodyT.innerHTML = tramites.map(function (t) {
+      return '<tr><td>' + escapeHtml(t.nombre) + '</td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-plant-tramite-btn" data-id="' + t.id + '" aria-label="Eliminar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button></div></td></tr>';
+    }).join("");
+    tbodyT.querySelectorAll(".del-plant-tramite-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/plantilla-tramites/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderPlantillaDetail(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar."); });
+      });
+    });
+
+    var hitos = state.plantillaHitos.filter(function (h) { return h.plantillaId === pl.id; });
+    var tbodyH = document.getElementById("plant-detail-hitos-body");
+    document.getElementById("plant-detail-hitos-empty").style.display = hitos.length ? "none" : "block";
+    tbodyH.innerHTML = hitos.map(function (h) {
+      return '<tr><td>' + escapeHtml(h.nombre) + '</td><td>' + (AREA_LABELS[h.area] || h.area) + '</td>' +
+        '<td><div class="row-actions requires-edit"><button class="icon-btn danger del-plant-hito-btn" data-id="' + h.id + '" aria-label="Eliminar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button></div></td></tr>';
+    }).join("");
+    tbodyH.querySelectorAll(".del-plant-hito-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        api("/api/plantilla-hitos/" + b.dataset.id, { method: "DELETE" })
+          .then(function () { return refreshAll(); })
+          .then(function () { renderPlantillaDetail(); })
+          .catch(function (err) { showBanner(err.message || "No se pudo eliminar."); });
+      });
+    });
+  }
+  function backToPlantillasList() {
+    state.viewingPlantillaId = null;
+    document.getElementById("dlg-plantillas-title").textContent = "Plantillas";
+    document.getElementById("plantilla-detail-view").style.display = "none";
+    document.getElementById("plantillas-list-view").style.display = "";
+    renderPlantillasList();
+  }
+  document.getElementById("btn-plantilla-volver").addEventListener("click", backToPlantillasList);
+  document.getElementById("dlg-plantillas-close").addEventListener("click", function () { dlgPlantillas.close(); });
+  document.getElementById("dlg-plantillas-done").addEventListener("click", function () { dlgPlantillas.close(); });
+
+  document.getElementById("btn-plant-crear").addEventListener("click", function () {
+    var status = document.getElementById("plant-crear-status");
+    var nombre = document.getElementById("plant-nombre").value.trim();
+    var proyectoId = document.getElementById("plant-proyecto-base").value;
+    status.style.visibility = "visible";
+    if (!nombre || !proyectoId) {
+      status.textContent = "Elige un nombre para la plantilla y el proyecto base.";
+      status.className = "status-msg err";
+      return;
+    }
+    api("/api/plantillas/desde-proyecto", { method: "POST", body: JSON.stringify({ nombre: nombre, proyectoId: proyectoId }) })
+      .then(function () {
+        status.textContent = "Plantilla creada.";
+        status.className = "status-msg ok";
+        document.getElementById("plant-nombre").value = "";
+        document.getElementById("plant-proyecto-base").value = "";
+        return refreshAll();
+      })
+      .then(function () { renderPlantillasList(); })
+      .catch(function (err) { status.textContent = err.message || "No se pudo crear la plantilla."; status.className = "status-msg err"; });
+  });
+
+  document.getElementById("btn-plant-guardar-nombre").addEventListener("click", function () {
+    var id = state.viewingPlantillaId;
+    if (!id) return;
+    var nombre = document.getElementById("plant-detail-nombre").value.trim();
+    if (!nombre) { showBanner("Escribe un nombre para la plantilla."); return; }
+    api("/api/plantillas/" + id, { method: "PUT", body: JSON.stringify({ nombre: nombre }) })
+      .then(function () { return refreshAll(); })
+      .then(function () { renderPlantillaDetail(); })
+      .catch(function (err) { showBanner(err.message || "No se pudo guardar el nombre."); });
+  });
+
+  document.getElementById("btn-plant-add-tramite").addEventListener("click", function () {
+    var id = state.viewingPlantillaId;
+    if (!id) return;
+    var input = document.getElementById("plant-add-tramite-nombre");
+    var nombre = input.value.trim();
+    if (!nombre) return;
+    api("/api/plantillas/" + id + "/tramites", { method: "POST", body: JSON.stringify({ nombre: nombre }) })
+      .then(function () { input.value = ""; return refreshAll(); })
+      .then(function () { renderPlantillaDetail(); })
+      .catch(function (err) { showBanner(err.message || "No se pudo agregar el trámite."); });
+  });
+
+  document.getElementById("btn-plant-add-hito").addEventListener("click", function () {
+    var id = state.viewingPlantillaId;
+    if (!id) return;
+    var input = document.getElementById("plant-add-hito-nombre");
+    var nombre = input.value.trim();
+    var area = document.getElementById("plant-add-hito-area").value;
+    if (!nombre) return;
+    api("/api/plantillas/" + id + "/hitos", { method: "POST", body: JSON.stringify({ nombre: nombre, area: area }) })
+      .then(function () { input.value = ""; return refreshAll(); })
+      .then(function () { renderPlantillaDetail(); })
+      .catch(function (err) { showBanner(err.message || "No se pudo agregar la actividad."); });
+  });
+
+  document.getElementById("btn-plant-aplicar").addEventListener("click", function () {
+    var id = state.viewingPlantillaId;
+    if (!id) return;
+    var status = document.getElementById("plant-aplicar-status");
+    var proyectoId = document.getElementById("plant-aplicar-proyecto").value;
+    status.style.visibility = "visible";
+    if (!proyectoId) {
+      status.textContent = "Elige a qué proyecto aplicar la plantilla.";
+      status.className = "status-msg err";
+      return;
+    }
+    api("/api/plantillas/" + id + "/aplicar", { method: "POST", body: JSON.stringify({ proyectoId: proyectoId }) })
+      .then(function (r) {
+        var proy = getProyecto(proyectoId);
+        status.textContent = "Se agregaron " + r.tramitesCreados + " trámite(s) y " + r.hitosCreados + " actividad(es) a " + (proy ? proy.nombre : "el proyecto") + ".";
+        status.className = "status-msg ok";
+        return refreshAll();
+      })
+      .catch(function (err) { status.textContent = err.message || "No se pudo aplicar la plantilla."; status.className = "status-msg err"; });
+  });
+
+  document.getElementById("btn-plant-eliminar").addEventListener("click", function () {
+    var id = state.viewingPlantillaId;
+    if (!id) return;
+    api("/api/plantillas/" + id, { method: "DELETE" })
+      .then(function () { return refreshAll(); })
+      .then(function () { backToPlantillasList(); })
+      .catch(function (err) { showBanner(err.message || "No se pudo eliminar la plantilla."); });
   });
 
   /* ---------------- Accesos (contraseñas por persona/área) ---------------- */

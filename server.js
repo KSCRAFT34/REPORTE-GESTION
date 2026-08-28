@@ -164,6 +164,38 @@ async function initDb() {
     );
   `);
 
+  // Plantillas: checklists reutilizables de trámites/actividades (solo nombre
+  // y área, sin fechas ni costos) para armar proyectos nuevos que se parecen a
+  // uno ya existente (p. ej. "Plantilla CDMX" a partir de Insurgentes 320),
+  // sin mezclar los números de un proyecto real con los de una plantilla.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS plantillas (
+      id TEXT PRIMARY KEY,
+      nombre TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS plantilla_tramites (
+      id TEXT PRIMARY KEY,
+      plantilla_id TEXT NOT NULL REFERENCES plantillas(id) ON DELETE CASCADE,
+      nombre TEXT NOT NULL,
+      orden INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS plantilla_hitos (
+      id TEXT PRIMARY KEY,
+      plantilla_id TEXT NOT NULL REFERENCES plantillas(id) ON DELETE CASCADE,
+      nombre TEXT NOT NULL,
+      area TEXT NOT NULL DEFAULT 'otro',
+      orden INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+
   // Historial de cambios de fecha: cada vez que se mueve la fecha de inicio o
   // vencimiento de un trámite u hito (a mano, o automáticamente por cascada de
   // dependencias) se guarda un registro aquí. La línea de tiempo principal
@@ -291,6 +323,15 @@ function proveedorRowToItem(row) {
     notas: row.notas || ""
   };
 }
+function plantillaRowToItem(row) {
+  return { id: row.id, nombre: row.nombre };
+}
+function plantillaTramiteRowToItem(row) {
+  return { id: row.id, plantillaId: row.plantilla_id, nombre: row.nombre, orden: row.orden || 0 };
+}
+function plantillaHitoRowToItem(row) {
+  return { id: row.id, plantillaId: row.plantilla_id, nombre: row.nombre, area: row.area, orden: row.orden || 0 };
+}
 function tramiteRowToItem(row) {
   return {
     id: row.id,
@@ -369,6 +410,25 @@ function sanitizeProveedor(body) {
     cuentaBancaria: String((body && body.cuentaBancaria) || "").trim(),
     notas: String((body && body.notas) || "").trim()
   };
+}
+
+function sanitizePlantilla(body) {
+  const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
+  return { nombre };
+}
+
+function sanitizePlantillaTramite(body) {
+  const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
+  return { nombre };
+}
+
+function sanitizePlantillaHito(body) {
+  const nombre = String((body && body.nombre) || "").trim();
+  if (!nombre) return null;
+  const area = HITO_AREAS.includes(body && body.area) ? body.area : "otro";
+  return { nombre, area };
 }
 
 // Valida una referencia "depende de" con forma "t:<id>" o "h:<id>" (trámite o hito).
@@ -781,7 +841,7 @@ app.get("/", requireAuth, (req, res) => {
 /* ---------------- Lectura de todo el dataset ---------------- */
 app.get("/api/data", requireAuth, async (req, res) => {
   try {
-    const [proyectos, tramites, pagos, subelementos, hitos, catalogoTramites, proveedores, historialFechas] = await Promise.all([
+    const [proyectos, tramites, pagos, subelementos, hitos, catalogoTramites, proveedores, historialFechas, plantillas, plantillaTramites, plantillaHitos] = await Promise.all([
       pool.query("SELECT * FROM proyectos ORDER BY nombre ASC"),
       pool.query("SELECT * FROM tramites ORDER BY fecha_vencimiento ASC NULLS LAST"),
       pool.query("SELECT * FROM pagos ORDER BY fecha DESC NULLS LAST"),
@@ -789,7 +849,10 @@ app.get("/api/data", requireAuth, async (req, res) => {
       pool.query("SELECT * FROM hitos ORDER BY fecha ASC NULLS LAST"),
       pool.query("SELECT * FROM catalogo_tramites ORDER BY nombre ASC"),
       pool.query("SELECT * FROM proveedores ORDER BY nombre ASC"),
-      pool.query("SELECT * FROM fecha_historial ORDER BY created_at DESC LIMIT 3000")
+      pool.query("SELECT * FROM fecha_historial ORDER BY created_at DESC LIMIT 3000"),
+      pool.query("SELECT * FROM plantillas ORDER BY nombre ASC"),
+      pool.query("SELECT * FROM plantilla_tramites ORDER BY orden ASC, created_at ASC"),
+      pool.query("SELECT * FROM plantilla_hitos ORDER BY orden ASC, created_at ASC")
     ]);
     res.json({
       proyectos: proyectos.rows.map(proyectoRowToItem),
@@ -799,7 +862,10 @@ app.get("/api/data", requireAuth, async (req, res) => {
       hitos: hitos.rows.map(hitoRowToItem),
       catalogoTramites: catalogoTramites.rows.map(catalogoTramiteRowToItem),
       proveedores: proveedores.rows.map(proveedorRowToItem),
-      historialFechas: historialFechas.rows.map(historialFechaRowToItem)
+      historialFechas: historialFechas.rows.map(historialFechaRowToItem),
+      plantillas: plantillas.rows.map(plantillaRowToItem),
+      plantillaTramites: plantillaTramites.rows.map(plantillaTramiteRowToItem),
+      plantillaHitos: plantillaHitos.rows.map(plantillaHitoRowToItem)
     });
   } catch (err) {
     console.error(err);
@@ -1157,6 +1223,175 @@ app.delete("/api/proveedores/:id", requireEditor, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "No se pudo eliminar." });
+  }
+});
+
+/* ---------------- Plantillas (checklists reutilizables de trámites/actividades) ---------------- */
+app.post("/api/plantillas/desde-proyecto", requireEditor, async (req, res) => {
+  const nombre = String((req.body && req.body.nombre) || "").trim();
+  const proyectoId = String((req.body && req.body.proyectoId) || "").trim();
+  if (!nombre || !proyectoId) return res.status(400).json({ error: "Elige un nombre para la plantilla y el proyecto base." });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const proy = await client.query("SELECT id FROM proyectos WHERE id=$1", [proyectoId]);
+    if (!proy.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "El proyecto base no existe." });
+    }
+    const id = crypto.randomUUID();
+    await client.query("INSERT INTO plantillas (id, nombre) VALUES ($1,$2)", [id, nombre]);
+
+    const tramitesOrigen = await client.query("SELECT nombre FROM tramites WHERE proyecto_id=$1 ORDER BY fecha_vencimiento ASC NULLS LAST", [proyectoId]);
+    let orden = 0;
+    for (const t of tramitesOrigen.rows) {
+      await client.query(
+        "INSERT INTO plantilla_tramites (id, plantilla_id, nombre, orden) VALUES ($1,$2,$3,$4)",
+        [crypto.randomUUID(), id, t.nombre, orden++]
+      );
+    }
+    const hitosOrigen = await client.query("SELECT nombre, area FROM hitos WHERE proyecto_id=$1 ORDER BY fecha ASC NULLS LAST", [proyectoId]);
+    orden = 0;
+    for (const h of hitosOrigen.rows) {
+      await client.query(
+        "INSERT INTO plantilla_hitos (id, plantilla_id, nombre, area, orden) VALUES ($1,$2,$3,$4,$5)",
+        [crypto.randomUUID(), id, h.nombre, h.area, orden++]
+      );
+    }
+    await client.query("COMMIT");
+    const plantillaRow = await pool.query("SELECT * FROM plantillas WHERE id=$1", [id]);
+    res.status(201).json(plantillaRowToItem(plantillaRow.rows[0]));
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "No se pudo crear la plantilla." });
+  } finally {
+    client.release();
+  }
+});
+
+app.put("/api/plantillas/:id", requireEditor, async (req, res) => {
+  const data = sanitizePlantilla(req.body || {});
+  if (!data) return res.status(400).json({ error: "Completa el nombre de la plantilla." });
+  try {
+    const result = await pool.query(
+      "UPDATE plantillas SET nombre=$1, updated_at=now() WHERE id=$2 RETURNING *",
+      [data.nombre, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: "Plantilla no encontrada." });
+    res.json(plantillaRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo actualizar la plantilla." });
+  }
+});
+
+app.delete("/api/plantillas/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM plantillas WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar la plantilla." });
+  }
+});
+
+app.post("/api/plantillas/:id/tramites", requireEditor, async (req, res) => {
+  const data = sanitizePlantillaTramite(req.body || {});
+  if (!data) return res.status(400).json({ error: "Escribe el nombre del trámite." });
+  try {
+    const orden = await pool.query("SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM plantilla_tramites WHERE plantilla_id=$1", [req.params.id]);
+    const result = await pool.query(
+      "INSERT INTO plantilla_tramites (id, plantilla_id, nombre, orden) VALUES ($1,$2,$3,$4) RETURNING *",
+      [crypto.randomUUID(), req.params.id, data.nombre, orden.rows[0].n]
+    );
+    res.status(201).json(plantillaTramiteRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    if (err.code === "23503") return res.status(400).json({ error: "La plantilla no existe." });
+    res.status(500).json({ error: "No se pudo agregar el trámite a la plantilla." });
+  }
+});
+
+app.delete("/api/plantilla-tramites/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM plantilla_tramites WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar." });
+  }
+});
+
+app.post("/api/plantillas/:id/hitos", requireEditor, async (req, res) => {
+  const data = sanitizePlantillaHito(req.body || {});
+  if (!data) return res.status(400).json({ error: "Escribe el nombre de la actividad." });
+  try {
+    const orden = await pool.query("SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM plantilla_hitos WHERE plantilla_id=$1", [req.params.id]);
+    const result = await pool.query(
+      "INSERT INTO plantilla_hitos (id, plantilla_id, nombre, area, orden) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+      [crypto.randomUUID(), req.params.id, data.nombre, data.area, orden.rows[0].n]
+    );
+    res.status(201).json(plantillaHitoRowToItem(result.rows[0]));
+  } catch (err) {
+    console.error(err);
+    if (err.code === "23503") return res.status(400).json({ error: "La plantilla no existe." });
+    res.status(500).json({ error: "No se pudo agregar la actividad a la plantilla." });
+  }
+});
+
+app.delete("/api/plantilla-hitos/:id", requireEditor, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM plantilla_hitos WHERE id=$1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "No se pudo eliminar." });
+  }
+});
+
+// Aplica una plantilla a un proyecto ya existente: crea un trámite/actividad
+// real por cada renglón de la plantilla, con estatus "no iniciado" y sin
+// fechas ni costos (eso se captura después, propio de cada proyecto).
+app.post("/api/plantillas/:id/aplicar", requireEditor, async (req, res) => {
+  const proyectoId = String((req.body && req.body.proyectoId) || "").trim();
+  if (!proyectoId) return res.status(400).json({ error: "Elige a qué proyecto aplicar la plantilla." });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const proy = await client.query("SELECT id FROM proyectos WHERE id=$1", [proyectoId]);
+    if (!proy.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "El proyecto seleccionado no existe." });
+    }
+    const tramitesPlantilla = await client.query("SELECT nombre FROM plantilla_tramites WHERE plantilla_id=$1 ORDER BY orden ASC", [req.params.id]);
+    const hitosPlantilla = await client.query("SELECT nombre, area FROM plantilla_hitos WHERE plantilla_id=$1 ORDER BY orden ASC", [req.params.id]);
+    if (!tramitesPlantilla.rows.length && !hitosPlantilla.rows.length) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "Esta plantilla no tiene trámites ni actividades que aplicar." });
+    }
+    for (const t of tramitesPlantilla.rows) {
+      await client.query(
+        `INSERT INTO tramites (id, proyecto_id, nombre, presupuesto, costo_gestion, costo_derechos, costo_gratificacion, estatus, tiempo_unidad, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,NULL,0,0,0,'no_iniciado','dias',true)`,
+        [crypto.randomUUID(), proyectoId, t.nombre]
+      );
+    }
+    for (const h of hitosPlantilla.rows) {
+      await client.query(
+        `INSERT INTO hitos (id, proyecto_id, nombre, area, estatus, incluir_linea_tiempo)
+         VALUES ($1,$2,$3,$4,'no_iniciado',true)`,
+        [crypto.randomUUID(), proyectoId, h.nombre, h.area]
+      );
+    }
+    await client.query("COMMIT");
+    res.json({ ok: true, tramitesCreados: tramitesPlantilla.rows.length, hitosCreados: hitosPlantilla.rows.length });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "No se pudo aplicar la plantilla." });
+  } finally {
+    client.release();
   }
 });
 
