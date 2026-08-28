@@ -1522,7 +1522,7 @@ app.post("/api/import", requireEditor, async (req, res) => {
 
 initDb()
   .then(() => {
-    app.listen(PORT, () => console.log("Trámites CRAFT escuchando en el puerto " + PORT));
+    app.listen(PORT, () => console.log("Gestión CRAFT escuchando en el puerto " + PORT));
   })
   .catch((err) => {
     console.error("No se pudo inicializar la base de datos:", err);

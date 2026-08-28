@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trámites CRAFT</title>
+<title>Gestión CRAFT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/styles.css">
@@ -51,8 +51,7 @@
   <div class="header">
     <div class="header-title">
       <span class="eyebrow">CRAFT · Gestión de trámites</span>
-      <h1>Trámites CRAFT</h1>
-      <div class="header-sub">Seguimiento de vencimientos y costos aproximados por ciudad y proyecto.</div>
+      <h1>Gestión CRAFT</h1>
     </div>
     <div class="header-actions">
       <button class="btn requires-edit" id="btn-import">
@@ -154,7 +153,6 @@
       <div class="header-title">
         <span class="eyebrow">CRAFT · Gestión de trámites</span>
         <h1>Áreas</h1>
-        <div class="header-sub">Actividades de comercial, obra, diseño, administración, due diligence, escrituración, etc. — con su propia fecha de inicio y término, igual que un trámite.</div>
       </div>
       <div class="header-actions">
         <button class="btn btn-primary requires-edit" id="btn-add-hito" title="Registra un proyecto primero">
@@ -182,8 +180,6 @@
       <span class="area-filter-label">Estado:</span>
       <label><input type="checkbox" checked data-hito-estado="vigente"> Vigente</label>
       <label><input type="checkbox" checked data-hito-estado="noIniciado"> No iniciado</label>
-      <label><input type="checkbox" checked data-hito-estado="porVencer"> Por vencer</label>
-      <label><input type="checkbox" checked data-hito-estado="urgente"> Urgente</label>
       <label><input type="checkbox" checked data-hito-estado="vencido"> Vencido</label>
       <label><input type="checkbox" checked data-hito-estado="completado"> Completado</label>
       <button type="button" class="link-btn" id="btn-hito-estado-todas" style="margin-left:10px">Todas</button>
@@ -240,11 +236,6 @@
         <span class="stat-foot">registrados en trámites visibles</span>
       </div>
       <div class="stat-tile">
-        <span class="stat-label">Por vencer ≤ 30 días</span>
-        <span class="stat-value c-warning" id="stat-soon">0</span>
-        <span class="stat-foot">incluye urgentes (≤15 días)</span>
-      </div>
-      <div class="stat-tile">
         <span class="stat-label">Vencidos</span>
         <span class="stat-value c-critical" id="stat-overdue">0</span>
         <span class="stat-foot">requieren atención inmediata</span>
@@ -272,8 +263,6 @@
             <option value="">Todos</option>
             <option value="vigente">Vigente</option>
             <option value="noIniciado">No iniciado</option>
-            <option value="porVencer">Por vencer (≤30 días)</option>
-            <option value="urgente">Urgente (≤15 días)</option>
             <option value="vencido">Vencido</option>
             <option value="completado">Completado</option>
           </select>
@@ -323,7 +312,6 @@
       <div class="header-title">
         <span class="eyebrow">CRAFT · Gestión de trámites</span>
         <h1>Líneas de tiempo</h1>
-        <div class="header-sub">Elige un proyecto para ver su cronograma completo — trámites y otras áreas juntos, agrupados por tipo de actividad.</div>
       </div>
     </div>
 
@@ -403,12 +391,11 @@
         <label style="margin-left:18px"><input type="checkbox" id="tl-mostrar-responsable"> Responsable</label>
       </div>
       <div class="legend">
-        <span class="legend-item"><span class="dot" style="background:var(--good)"></span>Vigente</span>
+        <span class="legend-item"><span class="dot" style="background:var(--vigente)"></span>Vigente</span>
         <span class="legend-item"><span class="dot" style="background:var(--pending)"></span>No iniciado</span>
-        <span class="legend-item"><span class="dot" style="background:var(--warning-dot)"></span>Por vencer (≤30 días)</span>
-        <span class="legend-item"><span class="dot" style="background:var(--serious)"></span>Urgente (≤15 días)</span>
         <span class="legend-item"><span class="dot" style="background:var(--critical)"></span>Vencido</span>
         <span class="legend-item"><span class="dot" style="background:var(--text-muted)"></span>Completado</span>
+        <span class="legend-item">🔥 Vence en ≤15 días</span>
       </div>
       <div class="timeline-scroll" id="timeline-scroll">
         <div class="timeline-inner" id="timeline-inner"><div class="tl-empty">Cargando línea de tiempo…</div></div>
@@ -421,7 +408,6 @@
       <div class="header-title">
         <span class="eyebrow">CRAFT · Gestión de trámites</span>
         <h1>Historial de fechas</h1>
-        <div class="header-sub">Cuántas veces se ha movido la fecha de cada actividad y cuánto en total. La línea de tiempo siempre muestra solo la fecha vigente; este reporte es aparte.</div>
       </div>
     </div>
 
@@ -1325,7 +1311,7 @@
     deletingProyectoId: null,
     editingHitoId: null,
     deletingHitoId: null,
-    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, porVencer: true, urgente: true, vencido: true, completado: true } },
+    hitoViewFilters: { proyectoId: "", areas: { comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, estados: { vigente: true, noIniciado: true, vencido: true, completado: true } },
     historialFilters: { proyectoId: "", tipo: "", nombre: "" },
     timelineView: { proyectoId: "", areas: { tramites: true, comercial: true, obra: true, diseno: true, administracion: true, due_diligence: true, escrituracion: true, otro: true }, granularidad: "trimestral", zoom: 1, mostrarResponsable: false, compareMode: false, compareProyectos: {} }
   };
@@ -1370,6 +1356,13 @@
   }
   function devClass(v) { return v > 0 ? "dev-pos" : v < 0 ? "dev-neg" : "dev-zero"; }
 
+  // Antes había estados intermedios "Por vencer" (≤30 días) y "Urgente" (≤15
+  // días) con sus propios colores; se quitaron a pedido de Karen (el naranja se
+  // confundía con el rojo de "Vencido", y el semáforo verde/amarillo/naranja/rojo
+  // hacía pensar que "Vigente" en verde significaba "listo"). Ahora solo hay dos
+  // estados por fecha: "Vigente" (amarillo, mientras no se haya pasado la fecha
+  // de vencimiento) y "Vencido" (rojo, ya se pasó) — más "No iniciado" (morado) y
+  // "Completado" (gris), que no dependen de la fecha de vencimiento.
   function computeState(item) {
     if (item.estatus === "completado") return "completado";
     var noIniciado = item.estatus === "no_iniciado";
@@ -1377,8 +1370,6 @@
     if (!due) return noIniciado ? "noIniciado" : "vigente";
     var diff = Math.round((due - todayMid) / MS_DAY);
     if (diff < 0) return "vencido";
-    if (diff <= 15) return "urgente";
-    if (diff <= 30) return "porVencer";
     return noIniciado ? "noIniciado" : "vigente";
   }
   function daysLabel(item) {
@@ -1389,7 +1380,19 @@
     if (diff > 0) return "Vence en " + diff + " día" + (diff === 1 ? "" : "s");
     return "Vencido hace " + Math.abs(diff) + " día" + (Math.abs(diff) === 1 ? "" : "s");
   }
-  var STATE_LABEL = { vigente: "Vigente", noIniciado: "No iniciado", porVencer: "Por vencer", urgente: "Urgente", vencido: "Vencido", completado: "Completado" };
+  // El aviso de "por vencer" ya no es un color aparte (se confundía con el
+  // rojo de "Vencido") — ahora es un ícono de flama en la línea de tiempo,
+  // igual que el ancla marca una dependencia. Aplica a lo que venza en los
+  // próximos 15 días y todavía no esté vencido ni completado.
+  function isProximaAVencer(item) {
+    var st = computeState(item);
+    if (st === "vencido" || st === "completado") return false;
+    var due = parseDate(item.fechaVencimiento);
+    if (!due) return false;
+    var diff = Math.round((due - todayMid) / MS_DAY);
+    return diff >= 0 && diff <= 15;
+  }
+  var STATE_LABEL = { vigente: "Vigente", noIniciado: "No iniciado", vencido: "Vencido", completado: "Completado" };
   var ESTATUS_LABEL = { no_iniciado: "No iniciado", en_proceso: "En proceso", completado: "Completado" };
 
   /* ---------------- Networking ---------------- */
@@ -1542,13 +1545,10 @@
     document.getElementById("stat-cost").textContent = fmtMoney.format(cost);
     var pagosSum = pagosTotalForTramites(filtered.map(function (it) { return it.id; })) + paquetePagosTotal(visibleProyectoIds(filtered));
     document.getElementById("stat-pagos").textContent = fmtMoney.format(pagosSum);
-    var soon = 0, overdue = 0;
+    var overdue = 0;
     filtered.forEach(function (it) {
-      var s = computeState(it);
-      if (s === "porVencer" || s === "urgente") soon++;
-      if (s === "vencido") overdue++;
+      if (computeState(it) === "vencido") overdue++;
     });
-    document.getElementById("stat-soon").textContent = soon;
     document.getElementById("stat-overdue").textContent = overdue;
   }
 
@@ -1926,6 +1926,13 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>' +
           '</div>'
         ) : '';
+        // Flama: avisa que esto vence en los próximos 15 días, sin depender
+        // de un color aparte que se pudiera confundir con "Vencido".
+        var flameHtml = isProximaAVencer(it) ? (
+          '<div class="tl-flame" style="left:' + (left + width + 3) + 'px;top:' + (BAR_TOP + 2) + 'px" title="' + escapeHtml(daysLabel(it)) + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7.5 7.5 0 1 1-15 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>' +
+          '</div>'
+        ) : '';
         // Las manijas para alargar/acortar solo aplican a actividades (hitos),
         // no a trámites — así lo pidió Karen: mover una actividad recalcula
         // sola la barra de resumen de su área.
@@ -1940,6 +1947,7 @@
           '<div class="tl-track" style="width:' + trackWidth + 'px">' +
             '<div class="tl-today" style="left:' + xFor(todayMid) + 'px"></div>' +
             anchorHtml +
+            flameHtml +
             '<div class="tl-bar st-' + st + (isHito ? ' tl-bar-hito' : '') + '" data-id="' + it.id + '" style="left:' + left + 'px;width:' + width + 'px;top:' + BAR_TOP + 'px">' + handlesHtml + '</div>' +
           '</div>' +
         '</div>';
@@ -2348,6 +2356,7 @@
       (it.notas ? '<div class="tt-row"><span>Notas</span><span>' + escapeHtml(it.notas) + '</span></div>' : '') +
       (it.subtareas ? '<div class="tt-row"><span>Subtareas</span><span>' + escapeHtml(it.subtareas) + '</span></div>' : '') +
       (it.dependeDe ? '<div class="tt-row"><span>⚓ Depende de</span><span>' + escapeHtml(dependeRefLabel(it.dependeDe)) + '</span></div>' : '') +
+      (isProximaAVencer(it) ? '<div class="tt-row"><span>🔥 Por vencer</span><span>' + daysLabel(it) + '</span></div>' : '') +
       '<div class="tt-row"><span>Estado</span><span>' + STATE_LABEL[st] + (st !== "completado" ? " · " + daysLabel(it) : "") + '</span></div>';
     tooltip.classList.add("show");
     positionTooltip(ev);

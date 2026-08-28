@@ -1,4 +1,4 @@
-# Trámites CRAFT — versión en línea (Render)
+# Gestión CRAFT — versión en línea (Render)
 
 Esta es la versión con servidor de tu sistema de seguimiento de trámites: en vez de
 guardar los datos solo en tu navegador, los guarda en una base de datos compartida,
@@ -19,17 +19,28 @@ información, y queda protegida con una contraseña.
   escrituración, otro): pantalla propia en el menú izquierdo donde capturas cada
   actividad igual que un trámite — con fecha de inicio y término, responsable, y su
   propio color por área — en vez de una fecha suelta. Se puede filtrar por área
-  y por estado (Vigente, No iniciado, Por vencer, Urgente, Vencido, Completado), con
-  botones "Todas"/"Ninguna" en cada filtro para no tener que ir marcando o
+  y por estado (Vigente, No iniciado, Vencido, Completado), con botones
+  "Todas"/"Ninguna" en cada filtro para no tener que ir marcando o
   desmarcando uno por uno. En esta misma pantalla, debajo de "Detalle de áreas",
   vive también el recuadro de **Trámites** (con sus propios números arriba, sus
   filtros y el botón "+ Nuevo trámite") — para capturar y consultar trámites
   reales sin salir de Áreas. El Dashboard ya no muestra trámites; ahí solo se
-  quedan Proyectos y Control de pagos. El estado "No iniciado" se muestra en un
-  color morado propio (antes se confundía con "Vigente" en verde); esto solo
-  aplica cuando todavía queda tiempo — si algo no ha iniciado y ya se pasó su
-  fecha de vencimiento, se sigue viendo en rojo como "Vencido" para no perder
-  esa alerta.
+  quedan Proyectos y Control de pagos.
+  Los estados por fecha se simplificaron a solo dos colores para evitar
+  confusiones: **Vigente** (amarillo) mientras no se haya pasado la fecha de
+  vencimiento, y **Vencido** (rojo) en cuanto se pasa — ya no hay tonos
+  intermedios de "Por vencer"/"Urgente" en naranja (se veían muy parecidos al
+  rojo) ni el "Vigente" en verde (se prestaba a pensarse como semáforo, como si
+  verde significara "ya listo"). Aparte están **No iniciado** (morado) y
+  **Completado** (gris), que no dependen de la fecha de vencimiento. El morado
+  de "No iniciado" solo aplica cuando todavía queda tiempo — si algo no ha
+  iniciado y ya se pasó su fecha de vencimiento, se sigue viendo en rojo como
+  "Vencido" para no perder esa alerta.
+  El aviso de "vence pronto" ya no es un color aparte — ahora es un ícono de
+  🔥 **flama** junto a la barra en la Línea de tiempo (igual que el ⚓ ancla
+  marca una dependencia), para lo que venza en los próximos 15 días y todavía
+  no esté vencido ni completado. Al pasar el cursor sobre la barra, el
+  tooltip también indica "Por vencer" con los días exactos.
 - **Depende de**: tanto en trámites como en "Áreas" puedes marcar que una
   actividad depende de otra (de cualquiera de las dos secciones). Si después mueves
   la fecha de vencimiento de la actividad de la que depende (se atrasa o se
@@ -79,8 +90,8 @@ información, y queda protegida con una contraseña.
   que se concluyó (o solo un punto en el inicio si aún sigue en proceso) — la
   fecha de **vencimiento nunca se usa para ubicar la barra**, porque esa es
   solo el recordatorio de renovación y vive únicamente en la tabla de
-  "Detalle de trámites" en Áreas. El color de la barra (vigente, por vencer,
-  urgente, vencido) sí sigue reflejando la fecha de vencimiento real.
+  "Detalle de trámites" en Áreas. El color de la barra (vigente o vencido)
+  sí sigue reflejando la fecha de vencimiento real.
   Puedes hacer **clic en cualquier barra** (trámite o actividad) para abrir
   su formulario de edición directamente desde la línea de tiempo, con los
   mismos permisos que ya aplican en las tablas: solo un editor puede editar
@@ -98,12 +109,13 @@ información, y queda protegida con una contraseña.
     término capturada, no se puede mover su inicio arrastrando — hay que
     ponerle primero una fecha de término desde su formulario.
   - **Barra de resumen por área**: arriba de las actividades de cada área
-    (incluyendo "Trámites") aparece una barra adicional, más tenue y con
-    rayas, que muestra cuántos **días en total** le toma a esa área terminar
-    todo su trabajo en ese proyecto — desde que arranca su primera actividad
-    hasta que termina la última. Se recalcula sola en cada cambio (incluyendo
-    justo después de alargar o acortar una actividad arrastrando), así que
-    siempre refleja el estado más reciente sin que tengas que hacer nada.
+    (incluyendo "Trámites") aparece una barra adicional, en azul sólido (el
+    mismo tono que los botones/casillas de selección de área), que muestra
+    cuántos **días en total** le toma a esa área terminar todo su trabajo en
+    ese proyecto — desde que arranca su primera actividad hasta que termina
+    la última. Se recalcula sola en cada cambio (incluyendo justo después de
+    alargar o acortar una actividad arrastrando), así que siempre refleja el
+    estado más reciente sin que tengas que hacer nada.
   - **Comparar proyectos**: arriba del selector de proyecto hay dos modos,
     "Un proyecto" (el de siempre) y "Comparar proyectos". En este segundo
     modo eliges, con casillas, cualquier combinación de proyectos (por
